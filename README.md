@@ -136,6 +136,20 @@ They don't really connect with the other buckets, except for reference
 material. A journal can link to it, or explain how that reference
 material came about.
 
+## [Habitica](https://habitica.com/)
+
+Habitica (and others like it) provide habit tracking tools to help the
+user develop better habits that the user defines. For instance,
+getting in a daily workout of some sort would be a good habit to
+track. These are the sorts of things that are usually not good fits
+for agendas. They don't fit well as todo items, since they are
+supposed to recur regularly. They're not reference. They're not
+projects. They really are their own thing.
+
+However, Brainframe is about helping to manage your life. Habits are
+one of the things that people want to do better. Some sort of habit
+tracker needs to be included.
+
 # Conclusions and Looking Forward
 
 All of these tools provide essential elements of the whole process,
