@@ -150,6 +150,23 @@ However, Brainframe is about helping to manage your life. Habits are
 one of the things that people want to do better. Some sort of habit
 tracker needs to be included.
 
+# Processes To Incorporate
+
+## Personal Review
+
+* What are yuour values?
+* How does your lifestyle reflect those values?
+* What do you do that does not align with those values?
+* What are your goals?
+* What do your horizons looks like (see Getting Things Done book for
+  definitions)
+
+## Letter to future self
+
+Not sure if this is a good one or just hokey, but I'm going to note it
+in here for now. It might be able to help out as people work to define
+what they want and help them move forward.
+
 # Conclusions and Looking Forward
 
 All of these tools provide essential elements of the whole process,
