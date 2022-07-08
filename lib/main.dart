@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-import "dart:math";
+import 'dart:math';
 
+import 'package:args/args.dart';
 import 'package:flutter/material.dart';
+import 'package:keep_screen_on/keep_screen_on.dart';
 import 'package:window_size/window_size.dart';
+
 
 extension Choice<T> on List<T> {
   T choice() {
@@ -12,20 +15,48 @@ extension Choice<T> on List<T> {
   }
 }
 
+
+String cmdname() {
+  var cmd = Platform.resolvedExecutable;
+  return cmd.split(Platform.pathSeparator).last;
+}
+
+
 bool isDesktop() {
   return Platform.isLinux || Platform.isMacOS || Platform.isWindows;
 }
 
-void main() {
+
+void printHelp(ArgParser parser, {bool doExit=true}) {
+  const String about = 'the Brain Frame: A tool to help you manage all the '
+      'information you try to keep in your brain.';
+
+  print('\n$about\n\n${cmdname()} [options]\n${parser.usage}\n');
+
+  if (doExit) {
+    exit(0);
+  }
+}
+
+
+void main(List<String> args) {
+  var parser = ArgParser();
+  parser.addFlag('help', abbr:'h', negatable: false);
+  var results = parser.parse(args);
+  if (results['help']) {
+    printHelp(parser);
+  }
+
   WidgetsFlutterBinding.ensureInitialized();
   if (isDesktop()) {
     setWindowTitle("Brain Frame");
   }
-  runApp(const MyApp());
+  runApp(const BrainFrameApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+
+class BrainFrameApp extends StatelessWidget {
+  const BrainFrameApp({Key? key}) : super(key: key);
 
   // This widget is the root of your application.
   @override
@@ -49,6 +80,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
 
@@ -67,19 +99,26 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+
 class _MyHomePageState extends State<MyHomePage> {
   final _uplifts = [
     "I am a self-reliant individual.",
     "I maintain my physical health.",
     "I maintain my mental health.",
   ];
+  String? _uplift;
 
   void _updateUplift() {
-    setState(() {});
+    setState(() {
+      _uplift = _uplifts.choice();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    KeepScreenOn.turnOn();
+
+    _uplift ??= _uplifts.choice();
     final updateTimer = Timer.periodic(
         const Duration(seconds:60), (timer) {
           _updateUplift();
@@ -117,10 +156,9 @@ class _MyHomePageState extends State<MyHomePage> {
           // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(_uplifts.choice(),
+            Text(_uplift ?? "Unassigned",
               style: Theme.of(context).textTheme.headline4,
             ),
-            Text("Last Updated at ${DateTime.now().toString()}"), // Text
           ],
         ),
       ),
