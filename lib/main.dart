@@ -117,7 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
     updateTimer ??= Timer.periodic(
         const Duration(seconds:60), (timer) {
       _uplift = _uplifts.choice();
-      setState(() {});
+      _updateUplift();
     });
   }
 
