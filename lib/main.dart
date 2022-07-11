@@ -107,23 +107,32 @@ class _MyHomePageState extends State<MyHomePage> {
     "I maintain my mental health.",
   ];
   String? _uplift;
+  Timer? updateTimer;
 
-  void _updateUplift() {
-    setState(() {
+  _MyHomePageState():super() {
+    KeepScreenOn.turnOn();
+
+    _uplift ??= _uplifts.choice();
+
+    updateTimer ??= Timer.periodic(
+        const Duration(seconds:60), (timer) {
       _uplift = _uplifts.choice();
+      setState(() {});
     });
   }
 
   @override
+  void dispose() {
+    updateTimer?.cancel();
+    super.dispose();
+  }
+
+  void _updateUplift() {
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
-    KeepScreenOn.turnOn();
-
-    _uplift ??= _uplifts.choice();
-    final updateTimer = Timer.periodic(
-        const Duration(seconds:60), (timer) {
-          _updateUplift();
-        });
-
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -158,6 +167,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             Text(_uplift ?? "Unassigned",
               style: Theme.of(context).textTheme.headline4,
+              key: const Key("uplift_message"),
             ),
           ],
         ),
