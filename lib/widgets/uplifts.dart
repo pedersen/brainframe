@@ -7,7 +7,7 @@ import 'package:brainframe/platform.dart';
 import 'package:brainframe/config.dart';
 
 class Uplifts extends StatefulWidget {
-  const Uplifts({Key? key}) : super(key: key);
+  const Uplifts() : super();
 
   @override
   State<Uplifts> createState() => _UpliftsState();
@@ -49,7 +49,8 @@ class _UpliftsState extends State<Uplifts> {
     return Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
       Text(
         _uplift ?? "Unassigned",
-        style: Theme.of(context).textTheme.headline4,
+        key: upliftKey,
+        overflow: TextOverflow.clip,
       ),
       FloatingActionButton(
         onPressed: _updateUplift,

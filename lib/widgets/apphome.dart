@@ -82,7 +82,7 @@ class _BrainFrameHomePageState extends State<BrainFrameHomePage> {
           // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: const <Widget>[
-            Uplifts(key: key),
+            Uplifts(),
           ],
         ),
       ),
