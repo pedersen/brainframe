@@ -1,6 +1,8 @@
 import 'dart:io';
-
 import 'package:args/args.dart';
+
+import 'package:brainframe/prefs.dart';
+
 
 String cmdname() {
   var cmd = Platform.resolvedExecutable;
@@ -19,12 +21,27 @@ void printHelp(ArgParser parser, {bool doExit=true}) {
   }
 }
 
+
 ArgResults parse(List<String> args) {
   var parser = ArgParser();
   parser.addFlag('help', abbr:'h', negatable: false);
+
+  var user = ArgParser();
+  user.addFlag('username', abbr:'u');
+  parser.addCommand('user', user);
+
+
   var results = parser.parse(args);
   if (results['help']) {
     printHelp(parser);
   }
   return results;
+}
+
+
+void main(List<String> args) {
+  var options = parse(args);
+  prefs.username='Michael J. Pedersen';
+  prefs.save();
+  print(prefs.username);
 }
