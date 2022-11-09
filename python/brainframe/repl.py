@@ -1,7 +1,11 @@
 import cmd
 import os
+import sys
 
-import readline
+try:
+    import readline
+except:
+    readline = None
 
 
 class BrainFrameShell(cmd.Cmd):
@@ -11,9 +15,10 @@ class BrainFrameShell(cmd.Cmd):
     histfile = os.path.expanduser('~/.brainframe_history')
     histfile_size = 1000
 
-    def do_args(self, arg):
-        """Show the current arguments: ARGS"""
-        print(", ".join(arg.split()))
+    def do_reload(self, arg):
+        """Save history, and restart brainframe to enable new functionality or fix bugs:  RELOAD"""
+        self.postloop()
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
     def do_quit(self, arg):
         """Stop recording, close the turtle window, and exit:  QUIT"""

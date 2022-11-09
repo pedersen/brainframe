@@ -21,7 +21,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'brainframe = brainframe:main'
+            'brainframe = brainframe.repl:repl'
         ]
     }
 )
