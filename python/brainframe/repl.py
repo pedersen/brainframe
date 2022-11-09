@@ -7,13 +7,17 @@ try:
 except:
     readline = None
 
+from brainframe.config import Config
+
 
 class BrainFrameShell(cmd.Cmd):
-    intro = 'Welcome to the BrainFrame shell.   Type help or ? to list commands.\n'
-    prompt = '(brainframe) '
-    rcfile = os.path.expanduser('~/.brainframerc')
-    histfile = os.path.expanduser('~/.brainframe_history')
-    histfile_size = 1000
+    intro: str = 'Welcome to the BrainFrame shell.   Type help or ? to list commands.\n'
+    prompt: str = '(brainframe) '
+    cfg: Config = None
+
+    def __init__(self, cfg: Config = None):
+        cmd.Cmd.__init__(self)
+        self.cfg = Config() if not cfg else cfg
 
     def do_reload(self, arg):
         """Save history, and restart brainframe to enable new functionality or fix bugs:  RELOAD"""
@@ -26,13 +30,10 @@ class BrainFrameShell(cmd.Cmd):
         return True
 
     def preloop(self) -> None:
-        if readline and os.path.exists(self.histfile):
-            readline.read_history_file(self.histfile)
+        self.cfg.load_histfile()
 
     def postloop(self) -> None:
-        if readline:
-            readline.set_history_length(self.histfile_size)
-            readline.write_history_file(self.histfile)
+        self.cfg.save_histfile()
 
 
 def repl():
