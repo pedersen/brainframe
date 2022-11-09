@@ -1,0 +1,26 @@
+[build-system]
+requires = ["pdm-pep517"]
+build-backend = "pdm.pep517.api"
+
+[project]
+name = "brainframe"
+version = "0.0.1"
+authors = [
+    { name="Michael J. Pedersen", email="m.pedersen@icelus.org" },
+]
+description = "BrainFrame - Zettelkasten management tools"
+readme = "README.md"
+license = "LICENSE"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GPLv3",
+    "Operating System :: OS Independent",
+]
+
+[project.scripts]
+brainframe = "brainframe.repl:repl"
+
+[project.urls]
+"Homepage" = "https://github.com/pedersen/brainframe"
+"Bug Tracker" = "https://github.com/pedersen/brainframe/issues"
