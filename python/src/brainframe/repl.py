@@ -36,6 +36,7 @@ class BrainFrameShell(cmd.Cmd):
         get_article(url)
 
     def do_getproduct(self, arg):
+        """Retrieve product name from website, and store that + link in products file: GETPRODUCT URL"""
         url = arg.split()[0]
         get_product(url)
 
