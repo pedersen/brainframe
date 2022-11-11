@@ -1,22 +1,50 @@
-import os.path
+import configparser
+import os
 
 try:
     import readline
 except:
     readline = None
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
+
+rcfilename: str = os.environ.get("BRAINFRAMERC", os.path.expanduser('~/.brainframerc'))
+zettelbase: str = os.environ.get("BRAINFRAMEZETTEL", os.path.expanduser('~/zettel'))
 
 
 @dataclass
 class Config:
-    rcfilename: str = os.path.expanduser('~/.brainframerc')
     histfile: str = os.path.expanduser('~/.brainframe_history')
     histfile_size: int = 1000
+    zetteldir: str = os.environ.get("BRAINFRAMEZETTEL", os.path.expanduser('~/zettel'))
+    articledir: str = os.path.join(zetteldir, 'articles-to-read')
+    products_md: str = os.path.join(zetteldir, 'products.md')
 
-    def load_cfg(self, rcfilename: str = None):
-        if not rcfilename:
-            rcfilename = self.rcfilename
+    def load_cfg(self, filename: str = None):
+        if not filename:
+            filename = rcfilename
+        if not os.path.exists(filename):
+            return
+        config = configparser.ConfigParser()
+        config.read(filename)
+        if 'DEFAULTS' not in config:
+            return
+
+        defaults = config['DEFAULTS']
+        for key in fields(self):
+            setattr(self, key.name, key.type(defaults.get(key.name, getattr(self, key.name))))
+
+    def save_cfg(self, filename: str = None):
+        if not filename:
+            filename = rcfilename
+        config = configparser.ConfigParser()
+        config['DEFAULTS'] = {}
+
+        defaults = config['DEFAULTS']
+        for key in fields(self):
+            defaults[key.name] = str(getattr(self, key.name))
+        with open(filename, 'w') as configfp:
+            config.write(configfp)
 
     def load_histfile(self, histfile: str = None):
         if not histfile:

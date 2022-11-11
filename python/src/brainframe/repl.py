@@ -8,6 +8,7 @@ except:
     readline = None
 
 from brainframe.config import Config
+from brainframe.articles import get_article, get_product
 
 
 class BrainFrameShell(cmd.Cmd):
@@ -29,10 +30,21 @@ class BrainFrameShell(cmd.Cmd):
         print('Thank you for using BrainFrame')
         return True
 
+    def do_getarticle(self, arg):
+        """Retrieve an article, convert to markdown, and save it to the zettelkasten: GETARTICLE URL"""
+        url = arg.split()[0]
+        get_article(url)
+
+    def do_getproduct(self, arg):
+        url = arg.split()[0]
+        get_product(url)
+
     def preloop(self) -> None:
+        self.cfg.load_cfg()
         self.cfg.load_histfile()
 
     def postloop(self) -> None:
+        self.cfg.save_cfg()
         self.cfg.save_histfile()
 
 
