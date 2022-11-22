@@ -223,3 +223,8 @@ reason, or it's a format known only to a single app (or two).
 
 * https://pub.dev/packages/keep_screen_on
 * https://github.com/google/flutter-desktop-embedding.git
+
+# External Binaries
+
+* [geckodriver](https://github.com/mozilla/geckodriver/releases)
+* 
