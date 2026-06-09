@@ -14,15 +14,6 @@ from brainframe.config import Config
 # Pocket : https://getpocket.com/developer/
 
 
-headers = {
-    'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-    'Accept-Encoding': 'gzip, deflate',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'Connection': 'keep-alive',
-}
-
-
 def slugify(instr: str):
     # replace whitespace with dashes, remove any non-alphanumeric characters from the title
     safe_slug = "".join(x if not x.isspace() else '-' for x in instr.lower() if x.isalnum() or x.isspace())
@@ -42,10 +33,19 @@ def get_product(url: str, driver: webdriver.Firefox = None):
     print(f"Added {name} to products file")
 
 
+def gitmark(url: str, driver: webdriver.Firefox = None):
+    cfg = Config()
+    driver.get(url)
+    wait = WebDriverWait(driver, 10)
+    wait.until(lambda x: driver.title.strip() != '')
+    name = driver.title
+    with open(cfg.gitmarks_md, 'a') as fp:
+        fp.write(f"- [{name}]({url})\n")
+    print(f"Added {name} to gitmarks file")
+
 def get_article(url: str, driver: webdriver.Firefox = None):
     articlebodies = {
         # key: domain value: lambda function to extract article body
-        # 'opensource.com': lambda body: body.find("div", attrs={'class': 'block-field-blocknodearticlebody'}),
         'opensource.com': lambda: driver.find_element(By.XPATH,
                                                       '//div[contains(@class, "block-field-blocknodearticlebody")]'),
         'medium.com': lambda: driver.find_element(By.NAME, "article")

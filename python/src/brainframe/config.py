@@ -19,6 +19,7 @@ class Config:
     zetteldir: str = os.environ.get("BRAINFRAMEZETTEL", os.path.expanduser('~/zettel'))
     articledir: str = os.path.join(zetteldir, 'articles-to-read')
     products_md: str = os.path.join(zetteldir, 'products.md')
+    gitmarks_md: str = os.path.join(zetteldir, 'gitmarks.md')
     firefox_binary: str = os.path.expanduser('~/apps/firefox/firefox')
 
     def load_cfg(self, filename: str = None):
