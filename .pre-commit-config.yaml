@@ -1,0 +1,18 @@
+# Pre-commit hooks for BrainFrame.
+#
+# One-time setup after cloning:
+#   uv tool install pre-commit   # (or: pipx install pre-commit)
+#   pre-commit install
+#
+# After that, staged Markdown is auto-fixed on every commit using
+# markdownlint-cli2, which reads its rules from .markdownlint-cli2.jsonc.
+# If the linter changes a file, the commit stops so you can review and
+# re-stage — standard fix-hook behavior.
+repos:
+  - repo: local
+    hooks:
+      - id: markdownlint-cli2-fix
+        name: markdownlint-cli2 (auto-fix markdown)
+        language: system
+        entry: markdownlint-cli2 --fix
+        files: \.(md|markdown)$
