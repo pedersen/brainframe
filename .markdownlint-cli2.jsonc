@@ -1,0 +1,22 @@
+{
+  // BrainFrame markdown lint rules — the single source of truth.
+  // Every trigger (pre-commit, editor plugins, manual runs) reads this file.
+  // Rule reference:
+  // https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+  "config": {
+    "default": true,
+    // Enforce 80-column wrapping on prose, but not inside code blocks or
+    // tables — those legitimately run long and shouldn't be hard-wrapped.
+    "MD013": {
+      "line_length": 80,
+      "code_blocks": false,
+      "tables": false
+    }
+  },
+  "globs": ["**/*.md"],
+  "ignores": [
+    "**/node_modules/**",
+    "**/.dart_tool/**",
+    "**/build/**"
+  ]
+}
