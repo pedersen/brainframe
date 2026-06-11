@@ -6,14 +6,14 @@ human reviews the PR before it merges. That review is the point of the flow.
 
 ## 1. Start a task
 
-Work happens in an isolated worktree on a `feature/<slug>` branch, never in
-the main checkout. In Claude Code, create it with the worktree tool, which
-places the worktree under `.claude/worktrees/` and branches from the latest
-`main`. By hand the equivalent is:
+Work happens in an isolated worktree, never in the main checkout. In Claude
+Code, create it with the worktree tool, passing a short kebab-case `<slug>`
+for the task (no slashes — the tool rewrites `/` to `+`). The tool puts the
+worktree at `.claude/worktrees/<slug>` and creates a `worktree-<slug>` branch
+off the latest `main`. By hand the equivalent is:
 
 ```bash
-git worktree add -b feature/<slug> \
-  .claude/worktrees/feature/<slug> origin/main
+git worktree add -b worktree-<slug> .claude/worktrees/<slug> origin/main
 ```
 
 The pre-commit hook is shared from the main checkout, so a new worktree is
@@ -38,7 +38,7 @@ lean on it — get the whole tree to `0 error(s)` first.
 Push the branch, then open a PR against `main`:
 
 ```bash
-git push -u origin feature/<slug>
+git push -u origin worktree-<slug>
 ```
 
 Create the PR with `gh pr create --fill` if the GitHub CLI is set up, or from
@@ -51,8 +51,8 @@ After approval, squash-merge the PR — the GitHub "Squash and merge" button, or
 `gh pr merge --squash --delete-branch`. Then tear down the worktree and branch:
 
 ```bash
-git worktree remove .claude/worktrees/feature/<slug>
-git branch -d feature/<slug>
+git worktree remove .claude/worktrees/<slug>
+git branch -d worktree-<slug>
 ```
 
 Finally, sync the main checkout with the squashed commit:
