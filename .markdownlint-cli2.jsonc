@@ -14,9 +14,14 @@
     }
   },
   "globs": ["**/*.md"],
+  // Respect .gitignore so we only lint our own tracked Markdown, not the
+  // third-party READMEs Flutter pulls into generated/ephemeral plugin dirs.
+  "gitignore": true,
   "ignores": [
     "**/node_modules/**",
     "**/.dart_tool/**",
-    "**/build/**"
+    "**/build/**",
+    // Flutter-generated, tracked platform stub READMEs we don't author.
+    "**/Assets.xcassets/**/README.md"
   ]
 }
