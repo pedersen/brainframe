@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -14,11 +15,16 @@ bool get _isDesktop =>
     defaultTargetPlatform == TargetPlatform.linux ||
     defaultTargetPlatform == TargetPlatform.macOS;
 
-/// Restores the saved desktop window bounds (or applies sensible defaults) and
-/// begins persisting future size, position, and maximized changes.
+/// Restores the saved desktop window geometry (or applies sensible defaults)
+/// and begins persisting future size, position, and maximized changes.
 ///
 /// No-op on mobile — only desktop platforms have an OS window to manage.
 /// Assumes `WidgetsFlutterBinding.ensureInitialized()` has already run.
+///
+/// Note on position: under Wayland the compositor owns window placement and
+/// silently ignores client requests to move a window, so position is neither
+/// meaningfully restorable nor savable there. Size and maximized state work on
+/// all desktops; position additionally works on X11, macOS, and Windows.
 Future<void> initWindowManager() async {
   if (!_isDesktop) return;
 
@@ -34,15 +40,10 @@ Future<void> initWindowManager() async {
   );
 
   await windowManager.waitUntilReadyToShow(options, () async {
-    if (saved != null) {
-      await windowManager.setBounds(
-        Rect.fromLTWH(
-          saved.offset.dx,
-          saved.offset.dy,
-          saved.size.width,
-          saved.size.height,
-        ),
-      );
+    // Size comes from WindowOptions; restore position separately (a no-op on
+    // Wayland). Skip it when maximized — maximize() drives the geometry.
+    if (saved?.position != null && !(saved!.isMaximized)) {
+      await windowManager.setPosition(saved.position!);
     }
     await windowManager.show();
     await windowManager.focus();
@@ -51,72 +52,108 @@ Future<void> initWindowManager() async {
     }
   });
 
+  // Persist on close as well as on change, so the final geometry is never lost.
+  await windowManager.setPreventClose(true);
   windowManager.addListener(_WindowStatePersister(prefs));
 }
 
 /// Persists window geometry whenever it changes.
+///
+/// Linux (GTK) emits only the present-tense `resize`/`move` events, while
+/// macOS and Windows emit the past-tense `resized`/`moved` variants. We listen
+/// for both and debounce, since the present-tense events fire continuously
+/// during a drag.
 class _WindowStatePersister extends WindowListener {
   _WindowStatePersister(this._prefs);
 
   final SharedPreferences _prefs;
+  Timer? _debounce;
+
+  void _scheduleSave() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), _save);
+  }
 
   Future<void> _save() async {
     final isMaximized = await windowManager.isMaximized();
 
-    // While maximized, keep the previously stored "normal" bounds so that
-    // un-maximizing on next launch restores a sensible size rather than the
-    // full-screen rectangle.
-    late final Rect bounds;
     if (isMaximized) {
+      // Keep the previously stored "normal" geometry so that un-maximizing on
+      // next launch restores a sensible size rather than the full-screen one.
       final previous = _readSaved(_prefs);
-      bounds = previous != null
-          ? Rect.fromLTWH(
-              previous.offset.dx,
-              previous.offset.dy,
-              previous.size.width,
-              previous.size.height,
-            )
-          : await windowManager.getBounds();
-    } else {
-      bounds = await windowManager.getBounds();
+      await _write(
+        position: previous?.position,
+        size: previous?.size ?? _defaultSize,
+        isMaximized: true,
+      );
+      return;
     }
 
+    await _write(
+      position: await windowManager.getPosition(),
+      size: await windowManager.getSize(),
+      isMaximized: false,
+    );
+  }
+
+  Future<void> _write({
+    required Offset? position,
+    required Size size,
+    required bool isMaximized,
+  }) async {
     await _prefs.setString(
       _prefsKey,
       jsonEncode({
-        'x': bounds.left,
-        'y': bounds.top,
-        'width': bounds.width,
-        'height': bounds.height,
+        if (position != null) 'x': position.dx,
+        if (position != null) 'y': position.dy,
+        'width': size.width,
+        'height': size.height,
         'maximized': isMaximized,
       }),
     );
   }
 
+  // Present-tense (Linux) and past-tense (macOS/Windows) geometry events.
   @override
-  void onWindowResized() => _save();
+  void onWindowResize() => _scheduleSave();
 
   @override
-  void onWindowMoved() => _save();
+  void onWindowResized() => _scheduleSave();
 
   @override
-  void onWindowMaximize() => _save();
+  void onWindowMove() => _scheduleSave();
 
   @override
-  void onWindowUnmaximize() => _save();
+  void onWindowMoved() => _scheduleSave();
 
   @override
-  void onWindowClose() => _save();
+  void onWindowMaximize() => _scheduleSave();
+
+  @override
+  void onWindowUnmaximize() => _scheduleSave();
+
+  @override
+  Future<void> onWindowClose() async {
+    _debounce?.cancel();
+    try {
+      await _save();
+    } finally {
+      // We intercepted the close (setPreventClose); always actually close,
+      // even if the final save failed.
+      await windowManager.destroy();
+    }
+  }
 }
 
 class _SavedWindowState {
   const _SavedWindowState({
-    required this.offset,
+    required this.position,
     required this.size,
     required this.isMaximized,
   });
 
-  final Offset offset;
+  /// Null when no position was stored (e.g. saved under Wayland).
+  final Offset? position;
   final Size size;
   final bool isMaximized;
 }
@@ -126,11 +163,12 @@ _SavedWindowState? _readSaved(SharedPreferences prefs) {
   if (raw == null) return null;
   try {
     final map = jsonDecode(raw) as Map<String, dynamic>;
+    final x = map['x'] as num?;
+    final y = map['y'] as num?;
     return _SavedWindowState(
-      offset: Offset(
-        (map['x'] as num).toDouble(),
-        (map['y'] as num).toDouble(),
-      ),
+      position: (x != null && y != null)
+          ? Offset(x.toDouble(), y.toDouble())
+          : null,
       size: Size(
         (map['width'] as num).toDouble(),
         (map['height'] as num).toDouble(),
