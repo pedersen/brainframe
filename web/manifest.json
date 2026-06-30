@@ -1,6 +1,6 @@
 {
-    "name": "brainframe",
-    "short_name": "brainframe",
+    "name": "BrainFrame",
+    "short_name": "BrainFrame",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
