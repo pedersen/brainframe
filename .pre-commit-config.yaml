@@ -2,12 +2,22 @@
 #
 # One-time setup after cloning:
 #   uv tool install pre-commit   # (or: pipx install pre-commit)
-#   pre-commit install
+#   pre-commit install --hook-type pre-commit --hook-type pre-push
 #
 # After that, staged Markdown is auto-fixed on every commit using
 # markdownlint-cli2, which reads its rules from .markdownlint-cli2.jsonc.
 # If the linter changes a file, the commit stops so you can review and
 # re-stage — standard fix-hook behavior.
+#
+# Whenever Dart files are staged, `flutter analyze` runs against the project
+# and blocks the commit on any analyzer issue. It needs `flutter` on PATH and
+# `flutter pub get` to have run at least once (so .dart_tool exists).
+#
+# On `git push`, `flutter test` runs the full suite and blocks the push on any
+# failure. Tests run on push rather than commit so routine commits stay fast.
+#
+# Each hook sets `stages:` explicitly — a hook with no stages runs in every
+# stage, which would make the commit-stage hooks also fire on push.
 repos:
   - repo: local
     hooks:
@@ -16,3 +26,29 @@ repos:
         language: system
         entry: markdownlint-cli2 --fix
         files: \.(md|markdown)$
+        stages: [pre-commit]
+      - id: flutter-analyze
+        name: flutter analyze
+        language: system
+        # `env -u GIT_*` strips the git-hook environment. Git exports GIT_DIR
+        # and friends pointing at this repo when it runs a hook, which would
+        # otherwise hijack Flutter's own version-detection git calls and make
+        # it report "0.0.0-unknown", breaking pub resolution.
+        entry: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE flutter analyze
+        # Analyze the whole project once, not per-file, but only when Dart
+        # changes are staged.
+        files: \.dart$
+        pass_filenames: false
+        require_serial: true
+        stages: [pre-commit]
+      - id: flutter-test
+        name: flutter test
+        language: system
+        # See the flutter-analyze note: strip the git-hook environment so
+        # Flutter can detect its own SDK version.
+        entry: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE flutter test
+        # Run the whole suite on every push, regardless of which files changed.
+        always_run: true
+        pass_filenames: false
+        require_serial: true
+        stages: [pre-push]

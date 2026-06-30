@@ -63,7 +63,18 @@ else
   fi
 fi
 
-# ---- 2. markdownlint-cli2 ------------------------------------------------
+# ---- 2. Flutter SDK -----------------------------------------------------
+# Flutter can't be auto-installed (it's a large SDK), so we only validate it.
+# The analyze (pre-commit) and test (pre-push) git hooks both depend on it.
+if command -v flutter >/dev/null 2>&1; then
+  ok "$(flutter --version 2>/dev/null | head -1)"
+else
+  fail "flutter not found — required by the analyze and test git hooks."
+  hint "Install Flutter: https://docs.flutter.dev/get-started/install"
+  problem
+fi
+
+# ---- 3. markdownlint-cli2 ------------------------------------------------
 if command -v markdownlint-cli2 >/dev/null 2>&1 \
    && markdownlint-cli2 --version >/dev/null 2>&1; then
   ver="$(markdownlint-cli2 --version 2>/dev/null | grep -oE 'v[0-9.]+' | head -1)"
@@ -85,7 +96,7 @@ else
   problem
 fi
 
-# ---- 3. pre-commit -------------------------------------------------------
+# ---- 4. pre-commit -------------------------------------------------------
 install_precommit() {
   if   command -v uv   >/dev/null 2>&1; then uv tool install pre-commit  >/dev/null 2>&1
   elif command -v pipx >/dev/null 2>&1; then pipx install pre-commit     >/dev/null 2>&1
@@ -110,23 +121,31 @@ else
   fi
 fi
 
-# ---- 4. repo config files ------------------------------------------------
+# ---- 5. repo config files ------------------------------------------------
 for f in .pre-commit-config.yaml .markdownlint-cli2.jsonc; do
   if [ -f "$f" ]; then ok "found $f"; else fail "missing $f"; problem; fi
 done
 
-# ---- 5. wire the git pre-commit hook ------------------------------------
+# ---- 6. wire the git hooks ----------------------------------------------
+# pre-commit stage: markdownlint + flutter analyze. pre-push stage: flutter test.
+# Resolve the real hooks dir: honor core.hooksPath if set, else the git-common
+# dir — `git rev-parse` gets this right inside a worktree, where .git is a file
+# rather than a directory and a literal ".git/hooks" path would not resolve.
+HOOKS_DIR="$(git config --get core.hooksPath 2>/dev/null || git rev-parse --git-path hooks)"
 if command -v pre-commit >/dev/null 2>&1; then
   if [ "$CHECK_ONLY" -eq 1 ]; then
-    if grep -q "pre-commit" .git/hooks/pre-commit 2>/dev/null; then
-      ok "git pre-commit hook installed"
-    else
-      fail "git pre-commit hook not installed."
-      hint "pre-commit install"
-      problem
-    fi
-  elif pre-commit install >/dev/null 2>&1; then
-    ok "git pre-commit hook installed"
+    for hook in pre-commit pre-push; do
+      if grep -q "pre-commit" "$HOOKS_DIR/$hook" 2>/dev/null; then
+        ok "git $hook hook installed"
+      else
+        fail "git $hook hook not installed."
+        hint "pre-commit install --hook-type pre-commit --hook-type pre-push"
+        problem
+      fi
+    done
+  elif pre-commit install --hook-type pre-commit --hook-type pre-push \
+       >/dev/null 2>&1; then
+    ok "git pre-commit and pre-push hooks installed"
   else
     fail "pre-commit install failed."
     problem
@@ -136,7 +155,7 @@ fi
 # ---- summary -------------------------------------------------------------
 echo
 if [ "$PROBLEMS" -eq 0 ]; then
-  printf '%sEnvironment ready.%s Markdown is auto-linted on commit.\n' "$G$B" "$X"
+  printf '%sEnvironment ready.%s Lint + analyze run on commit, tests on push.\n' "$G$B" "$X"
   hint "Lint everything now:  pre-commit run --all-files"
   exit 0
 fi
