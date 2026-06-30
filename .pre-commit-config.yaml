@@ -8,6 +8,10 @@
 # markdownlint-cli2, which reads its rules from .markdownlint-cli2.jsonc.
 # If the linter changes a file, the commit stops so you can review and
 # re-stage — standard fix-hook behavior.
+#
+# Whenever Dart files are staged, `flutter analyze` runs against the project
+# and blocks the commit on any analyzer issue. It needs `flutter` on PATH and
+# `flutter pub get` to have run at least once (so .dart_tool exists).
 repos:
   - repo: local
     hooks:
@@ -16,3 +20,12 @@ repos:
         language: system
         entry: markdownlint-cli2 --fix
         files: \.(md|markdown)$
+      - id: flutter-analyze
+        name: flutter analyze
+        language: system
+        entry: flutter analyze
+        # Analyze the whole project once, not per-file, but only when Dart
+        # changes are staged.
+        files: \.dart$
+        pass_filenames: false
+        require_serial: true
