@@ -3,6 +3,8 @@
 # One-time setup after cloning:
 #   uv tool install pre-commit   # (or: pipx install pre-commit)
 #   pre-commit install --hook-type pre-commit --hook-type pre-push
+#   dart pub global activate coverde        # coverage filter + threshold gate
+#   export PATH="$PATH:$HOME/.pub-cache/bin" # so `coverde` is on PATH
 #
 # After that, staged Markdown is auto-fixed on every commit using
 # markdownlint-cli2, which reads its rules from .markdownlint-cli2.jsonc.
@@ -13,8 +15,10 @@
 # and blocks the commit on any analyzer issue. It needs `flutter` on PATH and
 # `flutter pub get` to have run at least once (so .dart_tool exists).
 #
-# On `git push`, `flutter test` runs the full suite and blocks the push on any
-# failure. Tests run on push rather than commit so routine commits stay fast.
+# On `git push`, the coverage pipeline (tool/coverage.sh) runs the full test
+# suite with coverage and blocks the push if honest coverage drops below 90%.
+# It runs on push rather than commit so routine commits stay fast; the same
+# pipeline is the authoritative gate in CI (.github/workflows/coverage.yml).
 #
 # Each hook sets `stages:` explicitly — a hook with no stages runs in every
 # stage, which would make the commit-stage hooks also fire on push.
@@ -41,13 +45,15 @@ repos:
         pass_filenames: false
         require_serial: true
         stages: [pre-commit]
-      - id: flutter-test
-        name: flutter test
+      - id: coverage-gate
+        name: coverage gate (flutter test --coverage, >=90%)
         language: system
         # See the flutter-analyze note: strip the git-hook environment so
-        # Flutter can detect its own SDK version.
-        entry: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE flutter test
-        # Run the whole suite on every push, regardless of which files changed.
+        # Flutter can detect its own SDK version. tool/coverage.sh runs the
+        # full suite with coverage, filters documented exclusions, and fails
+        # the push under 90%. Needs `coverde` on PATH (see setup notes above).
+        entry: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE bash tool/coverage.sh
+        # Run the whole pipeline on every push, regardless of which files changed.
         always_run: true
         pass_filenames: false
         require_serial: true
