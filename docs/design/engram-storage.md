@@ -2,13 +2,14 @@
 
 - **Status:** accepted — all six decisions resolved (2026-06-30)
 - **Author:** Claude
-- **Date:** 2026-06-29
+- **Date:** 2026-06-30
 
 ## TL;DR
 
-An **engram** is BrainFrame's name for a self-contained directory of
-markdown files (plus its assets and metadata) that the app reads, writes,
-and reasons over — the equivalent of an Obsidian "vault." This document
+An **engram** is BrainFrame's name for a self-contained set of markdown
+files (plus assets and metadata) that the app reads, writes, and reasons
+over — usually a directory on disk, and the equivalent of an Obsidian
+"vault." This document
 defines the term, the on-disk layout, the cross-platform storage strategy
 (with iOS as the binding constraint), and a Dart abstraction that lets the
 rest of the app treat "where the files live" as a solved, hidden detail.
@@ -26,11 +27,11 @@ engrams.* The vocabulary below builds on it.
 
 | Term | Meaning |
 | --- | --- |
-| Engram | A directory of markdown + assets BrainFrame manages as one unit. |
-| Engram root | The top-level directory of a single engram. |
+| Engram | A set of markdown + assets BrainFrame manages as one unit (usually a directory). |
+| Engram root | The top-level directory of a *filesystem* engram. |
 | Engram marker | The `.brainframe/` folder at a root that identifies it. |
 | Engram registry | The app-level list of known engram roots. |
-| Engram manager | The runtime service that discovers, opens, and tracks engrams. |
+| Engram repository | The `EngramRepository` service that discovers, opens, and tracks engrams. |
 
 ## The cross-platform reality
 
@@ -48,9 +49,11 @@ Files app. This is the day-one path.
 
 **Location B — an external folder the user picks.** "Open my existing engram
 that lives anywhere on disk, or in iCloud Drive / Dropbox." The cost of this
-varies sharply by platform: on **desktop and Pi** it is trivial — a native
-folder picker returns a plain path, which is all the access handle needs —
-so it lands in v1. On **iOS** it requires the document picker plus
+varies sharply by platform: on **desktop** it is trivial — a native folder
+picker returns a plain path, which is all the access handle needs — so it
+lands in v1. (Pi has no native file dialog, so its free-folder picking needs
+an in-app browser and rides with the later Pi-usability work.) On **iOS** it
+requires the document picker plus
 **security-scoped bookmarks** (pick → persist a bookmark → resolve on next
 launch → coordinate access), which no Flutter plugin covers cleanly and which
 needs a small Swift platform channel; that piece is deferred to v2. The
@@ -58,9 +61,9 @@ abstraction is identical either way, so the deferral never touches screen
 code.
 
 The key design move: **Location A and Location B differ only in how you
-obtain a directory handle.** Above the file layer, an engram is just "a root
-directory plus an access handle," so the rest of the app never branches on
-where it lives.
+obtain a directory handle.** Above the file layer, a *filesystem* engram is
+just "a root directory plus an access handle," so the rest of the app never
+branches on where it lives.
 
 **The app container is a default, not a constraint.** Only iOS (and, more
 loosely, Android) actually sandboxes the app. On desktop and Pi there is no
@@ -140,14 +143,14 @@ asset-backed built-in engrams (which have no directory) and any future
 backend on equal footing with on-disk engrams.
 
 ```dart
-/// The content-access contract for every engram. Read-write stores (the
-/// filesystem) add write/delete; read-only stores (the asset bundle) do
-/// not. Callers use engram-relative paths and never see a Directory.
+/// The content-access contract for every engram. Callers use engram-relative
+/// paths and never see a Directory. Read-only stores (the asset bundle) throw
+/// on writeString; read-write stores (the filesystem) implement it. Whether an
+/// engram is read-only is carried by Engram.readOnly, not asked of the store.
 abstract class EngramStore {
-  bool get isReadOnly;
   Future<List<String>> list();                     // engram-relative paths
   Future<String> readString(String path);
-  Future<void> writeString(String path, String s); // read-write stores only
+  Future<void> writeString(String path, String s); // throws if read-only
 }
 
 /// One engram: its identity plus the store its content is reached through.
@@ -223,8 +226,8 @@ sole-writer design later is not.
 | Platform | Default engram | Pick any folder | Notes |
 | --- | --- | --- | --- |
 | macOS / Windows / Linux | Yes | v1 — native dir picker, plain path | No sandbox; the container is just a default. |
-| Pi (flutter-pi) | Yes | v1 — plain filesystem path | No sandbox. |
-| Android | Yes | v1–v2 — SAF folder (moderate) | App-specific storage by default. |
+| Pi (flutter-pi) | Yes | later — in-app browser (no native dialog) | No sandbox; free-folder rides with Pi-usability work. |
+| Android | Yes | v2 — SAF folder | App-specific storage by default. |
 | iOS | Yes | v2 — security-scoped bookmarks | v1 ships the Files-exposed container (Info.plist keys). |
 | Web | No | — | Deferred; future multi-user web is its own server backend (Decision 4). |
 
@@ -245,15 +248,15 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
 
 1. **v1 — multi-engram, with free folder choice where it's cheap.**
    `path_provider`, marker + `engram.json`, discovery, registry,
-   create/open/switch, iOS Files keys — **plus pick-any-folder on desktop and
-   Pi** (native picker, plain path). v1 also ships the two built-in
-   read-only engrams (tutorial, help) from an asset-bundle store and opens
-   the tutorial on first run. A real multi-engram markdown store on every
-   platform except web, with full free placement on desktop.
+   create/open/switch, iOS Files keys — **plus pick-any-folder on desktop**
+   (native picker, plain path). v1 also ships the two built-in read-only
+   engrams (tutorial, help) from an asset-bundle store and opens the tutorial
+   on first run. A real multi-engram markdown store on every platform except
+   web, with full free placement on desktop.
 2. **v2 — free folder choice on the sandboxed platforms.** iOS document-picker
    adoption + security-scoped bookmarks (Swift channel), plus optional
-   iCloud-container storage; Android SAF, if not already landed in v1. All
-   Apple-side work awaits Mac + iPhone hardware to verify.
+   iCloud-container storage; Android SAF folder picking. All Apple-side work
+   awaits Mac + iPhone hardware to verify.
 3. **v3 — sync awareness.** File watching, conflict surfacing, coordinated
    writes, iCloud placeholder handling hardened.
 
@@ -269,9 +272,9 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
 2. **One engram open at a time** (2026-06-30). `EngramScope` holds a single
    active engram, never a collection; the picker lists all known engrams but
    only one is open. Switching tears down engram-scoped state (open note,
-   in-memory index, file watchers) and releases the previous location —
-   important for Location B, where the old security-scoped handle must be
-   `release()`d before the new one is `resolve()`d. Need two at once? On
+   in-memory index, file watchers) and releases the previous engram's store —
+   for a filesystem engram in Location B, the old security-scoped handle must
+   be `release()`d before the new one is `resolve()`d. Need two at once? On
    desktop, open another copy of the app and switch it to the other engram
    (each instance's current engram is in-memory; the shared "last opened"
    hint is last-writer-wins across instances, which is harmless). On
@@ -294,21 +297,22 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
    browser-local backend (IndexedDB/OPFS) is *not* a stepping stone toward
    that goal — it is single-user and serverless — so building one now would
    be throwaway work. Two consequences for the design today: (a) the
-   multi-user web backend will be a sibling storage implementation behind the
-   higher-level `EngramRepository` contract, *not* another `EngramLocation`
+   multi-user web backend will be a sibling `EngramStore` implementation,
+   *not* another `EngramLocation`
    (which is filesystem-bound and won't "resolve to a directory" on a
    server); (b) as cheap insurance, keep `dart:io` / `File` / `Directory`
-   confined behind the storage seam — code above `EngramRepository` speaks in
+   confined behind the storage seam — code above `EngramStore` speaks in
    engram operations, never raw filesystem types — exactly as the existing
-   window seam confines its platform code. For v1, web is the stub backend
-   that reports "no engrams here."
+   window seam confines its platform code. For v1, web has no filesystem
+   store, so it offers only the two built-in engrams (tutorial, help) from
+   the asset store, and no user engrams.
 5. **First run opens a bundled tutorial; two built-in read-only engrams ship
    with the app** (2026-06-30). BrainFrame bundles two engrams the user
    cannot edit or delete — a **tutorial** engram that walks them through the
    app, and a **help/documentation** engram for reference the tutorial can't
    or shouldn't carry. First launch opens the tutorial; from there the user
    creates a new engram or opens an existing one. This makes read-only a
-   first-class engram property: `Engram` gains a `builtIn` / `readOnly` flag,
+   first-class engram property: `Engram` gains a `readOnly` flag,
    built-in engrams have fixed well-known ids (e.g. `builtin-tutorial`,
    `builtin-help`), are always present, never appear in the user-editable
    registry, cannot be forgotten or deleted, and disable note
@@ -317,8 +321,8 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
    copy — uneditable by construction, always pristine, and updated with the
    app, with no unpack step or migration. That makes the bundled engram the
    first one that is *not* a `dart:io` directory, so it is the concrete
-   forcing case for Decision 4's discipline — `EngramRepository` reads
-   through an abstract store rather than assuming `resolve() → Directory` —
+   forcing case for Decision 4's discipline — content is reached through an
+   abstract `EngramStore`, not by assuming `resolve() → Directory` —
    and it gives v1 a real, testable non-filesystem backend (asset bundles
    even exist on web, so tutorial/help can render on the web stub). The
    copy-to-container alternative is rejected: it makes "uneditable" a soft UI

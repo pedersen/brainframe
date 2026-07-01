@@ -46,10 +46,11 @@ lib/engram/
   metadata.dart          // EngramMetadata: engram.json (schemaVersion, id, …)
   id.dart                // ULID helper (or a tiny dependency)
   asset_engram_store.dart   // read-only AssetBundle store (all platforms)
-  fs_store.dart          // export seam: stub unless dart.library.io
-  fs_store_io.dart       // FileSystemEngramStore (dart:io, read-write)
-  fs_store_stub.dart     // web: throws UnsupportedError
-  engram_location.dart   // filesystem location: container / picked path
+  fs/                    // filesystem store + its fs-only location detail
+    fs_store.dart        // export seam: stub unless dart.library.io
+    fs_store_io.dart     // FileSystemEngramStore (dart:io, read-write)
+    fs_store_stub.dart   // web: throws UnsupportedError
+    engram_location.dart // container / picked path (filesystem only)
   engram_repository.dart // discovery, registry, create/open, lastOpened
   engram_scope.dart      // InheritedWidget: the single active engram
 ```
@@ -57,9 +58,10 @@ lib/engram/
 ## Build order
 
 Each step is independently testable and builds on the previous one. Step 0
-stands up the coverage gate; steps 2–5 are pure logic and run in plain
-`flutter test`; platform and UI come after. Per the git-workflow rule,
-**each step lands as its own worktree + PR** that you review before it merges
+stands up the coverage gate; steps 2–5 build the storage layer and run under
+`flutter test` without a device; platform integration and UI come after. Per
+the git-workflow rule, **each step lands as its own worktree + PR** that you
+review before it merges
 — eleven steps (0–10), eleven reviewable PRs. Two are near-trivial (Step 1
 adds dependencies; Step 9 is two `Info.plist` lines); fold either into its
 neighbour if you'd rather not review a tiny diff. From Step 1 on, every PR
@@ -85,9 +87,9 @@ before any feature work begins.
   `--fail-under` analog Dart lacks. coverde is chosen over `very_good_cli`
   for its purpose-built `filter` (clean, explicit exclusions) and native HTML
   reports that need no `lcov`/Perl toolchain.
-- **Exclusions, explicit and documented:** generated files (`*.g.dart`,
-  `*.freezed.dart`) and the untestable bootstrap `main.dart` are filtered in
-  one named place, so nothing is hidden silently. `window_state_io.dart`
+- **Exclusions, explicit and documented:** generated files (`*.g.dart`) and
+  the untestable bootstrap `main.dart` are filtered in one named place, so
+  nothing is hidden silently. `window_state_io.dart`
   (desktop-only, drives a real OS window) is the likely hard case — either a
   focused test or a justified, listed exclusion.
 - **Wire the gates:** the pre-push hook runs the shared pipeline below for
@@ -210,7 +212,7 @@ graphs.)
 ### Step 7 — EngramScope and app startup
 
 - `EngramScope` `InheritedWidget` holds the single active engram; switching
-  releases the previous location before resolving the next (Decision 2).
+  releases the previous engram's store before resolving the next (Decision 2).
 - Startup: open `lastOpened`, or on true first run open the built-in
   tutorial (Decision 5). Wire into the app shell alongside `AppSettings`.
 - **Verify:** widget test that first run lands on the tutorial and that
