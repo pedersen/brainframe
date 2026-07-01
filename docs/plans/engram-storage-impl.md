@@ -1,10 +1,10 @@
 # Implementation plan: Engram storage (v1)
 
-- **Status:** draft for review
+- **Status:** living — approved for implementation
 - **Author:** Claude
 - **Date:** 2026-06-30
-- **Companion to:** `../design/engram-storage.md` (the design proposal and
-  its six decisions)
+- **Companion to:** `../design/engram-storage.md` (the design and its six
+  decisions)
 
 ## Scope of this plan
 
@@ -28,7 +28,7 @@ sandboxed-platform folder picking and iCloud (v2), and web user-engrams.
 
 ## Architecture refinement
 
-Decisions 4 and 5 force one change to the proposal's sketch. The proposal
+Decisions 4 and 5 force one change to the design's original sketch. It
 gave `Engram` an `EngramLocation` that always `resolve()`s to a `Directory`.
 But a bundled engram is read from the asset bundle, not a directory, so that
 contract cannot be universal. The refinement:

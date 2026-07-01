@@ -1,6 +1,6 @@
-# Proposal: Engrams — BrainFrame's markdown storage model
+# Engram storage design
 
-- **Status:** draft for review
+- **Status:** accepted — all six decisions resolved (2026-06-30)
 - **Author:** Claude
 - **Date:** 2026-06-29
 
@@ -8,7 +8,7 @@
 
 An **engram** is BrainFrame's name for a self-contained directory of
 markdown files (plus its assets and metadata) that the app reads, writes,
-and reasons over — the equivalent of an Obsidian "vault." This proposal
+and reasons over — the equivalent of an Obsidian "vault." This document
 defines the term, the on-disk layout, the cross-platform storage strategy
 (with iOS as the binding constraint), and a Dart abstraction that lets the
 rest of the app treat "where the files live" as a solved, hidden detail.
@@ -46,7 +46,7 @@ identically on iOS, Android, desktop, and Pi. On iOS, two Info.plist keys —
 that directory into a real, user-visible, externally-editable folder in the
 Files app. This is the day-one path.
 
-**Location B — an external folder the user picks.** "Open my existing vault
+**Location B — an external folder the user picks.** "Open my existing engram
 that lives anywhere on disk, or in iCloud Drive / Dropbox." The cost of this
 varies sharply by platform: on **desktop and Pi** it is trivial — a native
 folder picker returns a plain path, which is all the access handle needs —
