@@ -1,0 +1,36 @@
+# Authoritative coverage gate: runs the same pipeline as the pre-push hook
+# (tool/coverage.sh) on every PR, comments the result, then enforces >=90%.
+# See docs/plans/engram-storage-impl.md, Step 0.
+name: coverage
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write # required to post the coverage comment
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.4 # pin to match the local toolchain
+      - run: flutter pub get
+      - run: dart pub global activate coverde
+      - run: echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+      # Regenerate the import-all helper, measure, and filter the documented
+      # exclusions — but skip the gate so the comment (next step) posts first
+      # even when coverage is low. Exclusions live only in tool/coverage.sh.
+      - name: Measure coverage
+        run: COVERAGE_SKIP_GATE=1 bash tool/coverage.sh
+      - name: Comment coverage on the PR
+        if: always() # post the number even if a later step fails
+        uses: romeovs/lcov-reporter-action@v0.3.1
+        with:
+          lcov-file: coverage/filtered.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          delete-old-comments: true # keep a single sticky comment per PR
+      # The gate, after the comment. Keep the threshold in sync with
+      # COVERAGE_MINIMUM in tool/coverage.sh.
+      - name: Enforce the 90% floor
+        run: coverde check -i coverage/filtered.info 90

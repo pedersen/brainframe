@@ -35,6 +35,10 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Coverage output. The generated test/coverage/all_files_test.dart is tracked;
+# the measured lcov traces are build artifacts.
+/coverage/
+
 # Symbolication related
 app.*.symbols
 
