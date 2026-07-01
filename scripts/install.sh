@@ -65,16 +65,51 @@ fi
 
 # ---- 2. Flutter SDK -----------------------------------------------------
 # Flutter can't be auto-installed (it's a large SDK), so we only validate it.
-# The analyze (pre-commit) and test (pre-push) git hooks both depend on it.
+# The analyze (pre-commit) and coverage (pre-push) git hooks depend on it, and
+# its bundled `dart` is what installs coverde below.
 if command -v flutter >/dev/null 2>&1; then
   ok "$(flutter --version 2>/dev/null | head -1)"
 else
-  fail "flutter not found — required by the analyze and test git hooks."
+  fail "flutter not found — required by the analyze and coverage git hooks."
   hint "Install Flutter: https://docs.flutter.dev/get-started/install"
   problem
 fi
 
-# ---- 3. markdownlint-cli2 ------------------------------------------------
+# ---- 3. coverde (Dart global) -------------------------------------------
+# The pre-push coverage gate (tool/coverage.sh) uses coverde to filter the
+# trace and enforce the 90% threshold. It installs via `dart pub global
+# activate` into ~/.pub-cache/bin, which must be on PATH for the git hook to
+# find it — so we test that `coverde` actually resolves, not just that it was
+# activated. `dart` ships with Flutter (checked above).
+coverde_version() { dart pub global list 2>/dev/null | awk '$1=="coverde"{print $2}'; }
+if command -v coverde >/dev/null 2>&1; then
+  ver="$(coverde_version)"
+  ok "coverde ${ver:-present}"
+elif [ "$CHECK_ONLY" -eq 1 ]; then
+  fail "coverde not found on PATH — the pre-push coverage gate needs it."
+  hint "dart pub global activate coverde"
+  hint 'and add to your shell profile:  export PATH="$PATH:$HOME/.pub-cache/bin"'
+  problem
+elif command -v dart >/dev/null 2>&1; then
+  warn "coverde missing — installing via dart pub global activate..."
+  if dart pub global activate coverde >/dev/null 2>&1 \
+     && command -v coverde >/dev/null 2>&1; then
+    ok "coverde installed"
+  elif [ -n "$(coverde_version)" ]; then
+    # Activated, but the binary doesn't resolve -> pub-cache bin isn't on PATH.
+    fail "coverde installed but not on PATH."
+    hint 'Add to your shell profile:  export PATH="$PATH:$HOME/.pub-cache/bin"'
+    problem
+  else
+    fail "dart pub global activate coverde failed — install it manually."
+    problem
+  fi
+else
+  fail "coverde missing and dart not found to install it — install Flutter."
+  problem
+fi
+
+# ---- 4. markdownlint-cli2 ------------------------------------------------
 if command -v markdownlint-cli2 >/dev/null 2>&1 \
    && markdownlint-cli2 --version >/dev/null 2>&1; then
   ver="$(markdownlint-cli2 --version 2>/dev/null | grep -oE 'v[0-9.]+' | head -1)"
@@ -96,7 +131,7 @@ else
   problem
 fi
 
-# ---- 4. pre-commit -------------------------------------------------------
+# ---- 5. pre-commit -------------------------------------------------------
 install_precommit() {
   if   command -v uv   >/dev/null 2>&1; then uv tool install pre-commit  >/dev/null 2>&1
   elif command -v pipx >/dev/null 2>&1; then pipx install pre-commit     >/dev/null 2>&1
@@ -121,13 +156,14 @@ else
   fi
 fi
 
-# ---- 5. repo config files ------------------------------------------------
+# ---- 6. repo config files ------------------------------------------------
 for f in .pre-commit-config.yaml .markdownlint-cli2.jsonc; do
   if [ -f "$f" ]; then ok "found $f"; else fail "missing $f"; problem; fi
 done
 
-# ---- 6. wire the git hooks ----------------------------------------------
-# pre-commit stage: markdownlint + flutter analyze. pre-push stage: flutter test.
+# ---- 7. wire the git hooks ----------------------------------------------
+# pre-commit stage: markdownlint + flutter analyze. pre-push stage: the
+# coverage gate (flutter test --coverage + coverde 90% threshold).
 # Resolve the real hooks dir: honor core.hooksPath if set, else the git-common
 # dir — `git rev-parse` gets this right inside a worktree, where .git is a file
 # rather than a directory and a literal ".git/hooks" path would not resolve.
@@ -155,7 +191,7 @@ fi
 # ---- summary -------------------------------------------------------------
 echo
 if [ "$PROBLEMS" -eq 0 ]; then
-  printf '%sEnvironment ready.%s Lint + analyze run on commit, tests on push.\n' "$G$B" "$X"
+  printf '%sEnvironment ready.%s Lint + analyze on commit, tests + coverage gate on push.\n' "$G$B" "$X"
   hint "Lint everything now:  pre-commit run --all-files"
   exit 0
 fi
