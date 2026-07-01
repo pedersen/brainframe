@@ -26,27 +26,18 @@ Explicitly **out** of v1 (named so they don't creep in): a real markdown
 editor, backlinks/graph, search indexing, file watching / sync (v3),
 sandboxed-platform folder picking and iCloud (v2), and web user-engrams.
 
-## Architecture refinement
+## Storage architecture
 
-Decisions 4 and 5 force one change to the design's original sketch. It
-gave `Engram` an `EngramLocation` that always `resolve()`s to a `Directory`.
-But a bundled engram is read from the asset bundle, not a directory, so that
-contract cannot be universal. The refinement:
+The design fixes the content-access model (see
+[the design doc](../design/engram-storage.md)): every engram is reached
+through an abstract **`EngramStore`**, never a raw `dart:io` `Directory`, so
+the asset-backed built-ins and any future backend sit alongside on-disk
+engrams. `Engram` holds a `store`; `EngramLocation` is only a
+*filesystem*-store detail (which directory, and how to access it). Two stores
+ship in v1: `AssetEngramStore` (read-only, all platforms) and the `dart:io`
+`FileSystemEngramStore` (read-write, behind the platform seam).
 
-- **`EngramStore`** becomes the content-access contract every engram is read
-  through (list files, read string/bytes; read-write stores add write /
-  delete). The app never touches `dart:io` types directly.
-- **`EngramLocation`** is demoted to an implementation detail of the
-  *filesystem* store only — it answers "which directory, and how do I get
-  access to it" (container path now; picked path and security-scoped
-  bookmarks later).
-- **`Engram`** holds a `store`, not a `location`, plus `id`, `displayName`,
-  and a `readOnly` / `builtIn` flag.
-
-Two stores ship in v1: `AssetEngramStore` (read-only, all platforms) and the
-`dart:io` `FileSystemEngramStore` (read-write, behind the platform seam).
-
-Proposed file layout, mirroring the existing `window_state` export seam:
+The concrete file layout, mirroring the existing `window_state` export seam:
 
 ```text
 lib/engram/

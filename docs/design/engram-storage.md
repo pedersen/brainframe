@@ -131,54 +131,57 @@ conditional-import platform seam from
 `InheritedWidget` settings from
 [app_settings.dart](../../lib/theme/app_settings.dart).
 
-```text
-lib/engram/
-  engram.dart              // Engram model: id, displayName, root, settings
-  engram_location.dart     // EngramLocation: a resolvable directory handle
-  engram_repository.dart   // discover / open / create / list; persists registry
-  engram_scope.dart        // InheritedWidget exposing the current engram
-  storage/
-    engram_storage.dart    // conditional-export seam (stub if !dart.library.io)
-    engram_storage_io.dart // path_provider + dart:io implementation
-    engram_storage_stub.dart // web/no-fs fallback
-```
-
-Sketch of the core contracts (illustrative, not final):
+Everything above the storage layer reaches an engram through one contract,
+**`EngramStore`** — never a raw `dart:io` `Directory`. That puts the
+asset-backed built-in engrams (which have no directory) and any future
+backend on equal footing with on-disk engrams.
 
 ```dart
-/// Where an engram physically lives. Hides the difference between an
-/// in-container folder (Location A) and a security-scoped external folder
-/// (Location B) behind a single "give me a usable directory" call.
-abstract class EngramLocation {
-  Future<Directory> resolve();      // may start security-scoped access
-  Future<void> release();           // no-op for container; stops access for B
-  String get persistableToken;      // path for A, bookmark blob for B
+/// The content-access contract for every engram. Read-write stores (the
+/// filesystem) add write/delete; read-only stores (the asset bundle) do
+/// not. Callers use engram-relative paths and never see a Directory.
+abstract class EngramStore {
+  bool get isReadOnly;
+  Future<List<String>> list();                     // engram-relative paths
+  Future<String> readString(String path);
+  Future<void> writeString(String path, String s); // read-write stores only
 }
 
-/// One engram: its identity and its root, independent of location kind.
+/// One engram: its identity plus the store its content is reached through.
 class Engram {
   final String id;
   final String displayName;
-  final EngramLocation location;
+  final bool readOnly;
+  final EngramStore store;
 }
 
-/// Discovers, opens, creates, and remembers engrams. Backed by the
-/// platform storage seam plus the shared_preferences registry.
+/// Discovers, opens, creates, and remembers engrams. Persists the registry
+/// in shared_preferences; surfaces the built-ins from the asset store.
 abstract class EngramRepository {
-  Future<List<Engram>> discover();          // scan container + known roots
+  Future<List<Engram>> discover();          // built-ins + container + roots
   Future<Engram> create(String displayName);
-  Future<Engram> adopt(EngramLocation location); // wrap an existing folder
+  Future<Engram> adopt(EngramLocation location); // wrap a picked folder
   Future<void> forget(String id);           // drop from registry, leave files
   Future<Engram?> get lastOpened;
   Future<void> setLastOpened(String id);
 }
 ```
 
+Two stores implement the contract in v1: a read-only `AssetEngramStore` over
+the Flutter asset bundle (all platforms) and a read-write
+`FileSystemEngramStore` behind the `dart:io` seam. `EngramLocation` is *not* a
+top-level concept — it is an implementation detail of the filesystem store,
+answering "which directory, and how do I get access to it" (container path
+now; picked path and security-scoped bookmarks later). Only that store ever
+touches a `Directory`. The concrete `lib/engram/` file layout lives in the
+implementation plan.
+
 The current engram is exposed to the widget tree by an `EngramScope`
 `InheritedWidget`, so screens read `EngramScope.of(context).engram` the same
 way they read `AppSettings.of(context)` today. Switching engrams swaps that
-single value — engram-scoped subtrees rebuild and the previous engram's
-location handle is released — while the app root is untouched.
+single value — engram-scoped subtrees rebuild and the previous engram's store
+is released (closing any filesystem location handle) — while the app root is
+untouched.
 
 ## Discovery
 
@@ -335,8 +338,9 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
 - [ ] Approve "engram" as the term and the vocabulary table.
 - [ ] Approve the layout: siblings under the container, `.brainframe/`
       marker, no nesting, app state in Application Support.
-- [ ] Approve the `EngramLocation` / `EngramRepository` / `EngramScope`
-      shape and the `lib/engram/` seam layout.
+- [ ] Approve the `EngramStore` / `EngramRepository` / `EngramScope` shape
+      (with `EngramLocation` as a filesystem-store detail) and the
+      `lib/engram/` seam layout.
 - [ ] Approve bundled tutorial + help as built-in, read-only,
       asset-bundle-backed engrams, with first run opening the tutorial.
 - [ ] Approve the presentation split: tutorial as a full engram switch,
