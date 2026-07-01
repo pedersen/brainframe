@@ -82,7 +82,6 @@ directly rather than discovered by scanning a parent:
   Personal/                 ← engram root
     .brainframe/            ← engram marker
       engram.json           ← id, name, schema version, timestamps
-      index/                ← (future) search/graph caches
     daily/2026-06-29.md
     notes/flutter.md
     assets/diagram.png
@@ -102,11 +101,15 @@ Rules:
   `.brainframe/engram.json` is an engram; a plain folder is not. This lets
   the user create engrams by gesture in BrainFrame, while ordinary folders
   they drop in Files are ignored until adopted.
-- **App-level state never goes in the documents directory.** Because that
-  directory is exposed to the Files app, anything at its root is
-  user-visible clutter they can delete. The registry, "last opened engram,"
-  and global preferences live in `Library/Application Support` (via
-  `shared_preferences`, already a dependency), not next to the content.
+- **App-level and derived state never goes in the documents directory.** That
+  directory is exposed to the Files app and synced wholesale by
+  iCloud/Dropbox, so anything inside it travels across devices and is
+  user-visible clutter the user can delete. The registry, "last opened
+  engram," and global preferences live in `Library/Application Support` (via
+  `shared_preferences`, already a dependency). **Derived per-engram caches** —
+  the search/graph index — live there too, keyed by engram id and never inside
+  the engram, so each device rebuilds its own and nothing syncs or needs a
+  `.gitignore`.
 
 ### `engram.json` (initial schema)
 
@@ -260,11 +263,9 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
    engram root. The interop alternative — a sibling `.engram/` holding
    engram-wide data for *other* tools to consume — is deferred: there is no
    concrete external consumer yet, and everything engram-wide already lives
-   in `engram.json`, as ordinary content (e.g. a root `README.md`), or as
-   standard VCS files at the root (e.g. a `.gitignore` excluding the
-   app-private `.brainframe/index/` caches — BrainFrame should write that
-   `.gitignore` on engram creation). A public namespace is a cheap additive
-   change if a real external consumer ever appears.
+   in `engram.json` or as ordinary content (e.g. a root `README.md`). A public
+   namespace is a cheap additive change if a real external consumer ever
+   appears.
 2. **One engram open at a time** (2026-06-30). `EngramScope` holds a single
    active engram, never a collection; the picker lists all known engrams but
    only one is open. Switching tears down engram-scoped state (open note,
@@ -332,18 +333,3 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
    holds exactly one active engram (an editable one, or the tutorial), while
    the help overlay is a non-exclusive reader on top, reading from the same
    asset-bundle store, and never becomes the active engram.
-
-## Decision checklist (for the train)
-
-- [ ] Approve "engram" as the term and the vocabulary table.
-- [ ] Approve the layout: siblings under the container, `.brainframe/`
-      marker, no nesting, app state in Application Support.
-- [ ] Approve the `EngramStore` / `EngramRepository` / `EngramScope` shape
-      (with `EngramLocation` as a filesystem-store detail) and the
-      `lib/engram/` seam layout.
-- [ ] Approve bundled tutorial + help as built-in, read-only,
-      asset-bundle-backed engrams, with first run opening the tutorial.
-- [ ] Approve the presentation split: tutorial as a full engram switch,
-      help as a read-only reader overlay.
-- [ ] Confirm v1 scope = multi-engram everywhere, free folder choice on
-      desktop/Pi, iOS Files-exposed container, and the two built-in engrams.

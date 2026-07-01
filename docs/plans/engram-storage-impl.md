@@ -181,8 +181,10 @@ graphs.)
 - `fs_store.dart` conditional export (stub vs `_io`), mirroring
   `window_state.dart`. `FileSystemEngramStore` (read-write) over a resolved
   `Directory`. `EngramLocation` for the container path via `path_provider`.
-- Create-engram writes the `.brainframe/` marker + `engram.json`, and a
-  root `.gitignore` excluding `.brainframe/index/` (Decision 1).
+- Create-engram writes the `.brainframe/` marker + `engram.json` and nothing
+  else in the folder — derived caches (the search/graph index) live in
+  Application Support keyed by engram id, never in the engram, so no
+  `.gitignore` is needed (Decision 1).
 - **Verify:** unit tests create an engram in a temp directory and round-trip
   files; the stub throws on web.
 
