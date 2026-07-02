@@ -144,8 +144,17 @@ Future<Engram> openFileSystemEngram(EngramLocation location) async {
   );
 }
 
-/// The app's private documents directory — the default container that holds
-/// engrams as sibling folders on every platform (`path_provider`).
+/// The app documents directory (`path_provider`) — the *default* container
+/// that holds engrams as sibling folders on desktop, iOS, and Android.
+///
+/// This is one container source, not the authority: the repository (Step 5)
+/// takes the container as an injected value so it can be overridden per
+/// platform. The Raspberry Pi in particular does not use this — its library is
+/// expected to live on a separate mounted volume (a secondary SD card) whose
+/// path comes from configuration, which `path_provider` cannot report. On a
+/// headless Linux box without XDG user-dirs configured, `path_provider` throws
+/// [MissingPlatformDirectoryException] rather than returning a path; the
+/// container resolver, not this thin wrapper, is where that case is handled.
 Future<String> applicationEngramContainerPath() async {
   final directory = await getApplicationDocumentsDirectory();
   return directory.path;
