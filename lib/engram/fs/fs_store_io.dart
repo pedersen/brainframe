@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 
@@ -20,8 +21,8 @@ const String metadataFileName = 'engram.json';
 /// everything above it speaks in engram-relative paths. Content paths use
 /// forward slashes on every platform and never begin with a slash. The marker
 /// directory ([markerDirectoryName]) is app-owned metadata, not content, so it
-/// is excluded from [list] and refused by [writeString].
-class FileSystemEngramStore implements EngramStore {
+/// is excluded from [list] and refused by [writeBytes].
+class FileSystemEngramStore extends EngramStore {
   FileSystemEngramStore(this.location);
 
   /// Where this engram's root directory lives.
@@ -47,11 +48,11 @@ class FileSystemEngramStore implements EngramStore {
   }
 
   @override
-  Future<String> readString(String path) =>
-      File(_resolve(path)).readAsString();
+  Future<Uint8List> readBytes(String path) =>
+      File(_resolve(path)).readAsBytes();
 
   @override
-  Future<void> writeString(String path, String contents) async {
+  Future<void> writeBytes(String path, Uint8List bytes) async {
     if (path == markerDirectoryName || path.startsWith('$markerDirectoryName/')) {
       throw ArgumentError.value(
         path,
@@ -61,7 +62,7 @@ class FileSystemEngramStore implements EngramStore {
     }
     final file = File(_resolve(path));
     await file.parent.create(recursive: true);
-    await file.writeAsString(contents);
+    await file.writeAsBytes(bytes);
   }
 
   /// Resolves an engram-relative [path] to an absolute filesystem path, after

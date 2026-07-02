@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:brainframe/engram/asset_engram_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,7 +37,17 @@ void main() {
       );
     });
 
-    test('is read-only: writeString throws UnsupportedError', () {
+    test('readBytes returns the raw bytes behind readString', () async {
+      final bytes = await store.readBytes('welcome.md');
+      expect(bytes, isA<Uint8List>());
+      expect(utf8.decode(bytes), contains('Welcome to BrainFrame'));
+    });
+
+    test('is read-only: writeBytes and writeString throw UnsupportedError', () {
+      expect(
+        () => store.writeBytes('welcome.md', Uint8List(0)),
+        throwsUnsupportedError,
+      );
       expect(
         () => store.writeString('welcome.md', 'nope'),
         throwsUnsupportedError,

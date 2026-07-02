@@ -144,13 +144,18 @@ backend on equal footing with on-disk engrams.
 
 ```dart
 /// The content-access contract for every engram. Callers use engram-relative
-/// paths and never see a Directory. Read-only stores (the asset bundle) throw
-/// on writeString; read-write stores (the filesystem) implement it. Whether an
+/// paths and never see a Directory. Bytes are the primitive (engrams hold
+/// images, PDFs, EPUBs as first-class content, not just markdown); readString /
+/// writeString are UTF-8 conveniences implemented on top, so each backend
+/// implements only the byte methods. Read-only stores (the asset bundle) throw
+/// on writeBytes; read-write stores (the filesystem) implement it. Whether an
 /// engram is read-only is carried by Engram.readOnly, not asked of the store.
 abstract class EngramStore {
-  Future<List<String>> list();                     // engram-relative paths
-  Future<String> readString(String path);
-  Future<void> writeString(String path, String s); // throws if read-only
+  Future<List<String>> list();                      // engram-relative paths
+  Future<Uint8List> readBytes(String path);
+  Future<void> writeBytes(String path, Uint8List b); // throws if read-only
+  Future<String> readString(String path) async => …; // utf8 over readBytes
+  Future<void> writeString(String path, String s);   // utf8 over writeBytes
 }
 
 /// One engram: its identity plus the store its content is reached through.
@@ -337,3 +342,15 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
    holds exactly one active engram (an editable one, or the tutorial), while
    the help overlay is a non-exclusive reader on top, reading from the same
    asset-bundle store, and never becomes the active engram.
+7. **`EngramStore` is bytes-first; binary content is first-class**
+   (2026-07-02). Engrams hold images, PDFs, and EPUBs alongside markdown —
+   document reading is a founding product pillar, not an edge case — so the
+   store's primitives are `readBytes` / `writeBytes`, with `readString` /
+   `writeString` as UTF-8 conveniences layered on top (each backend implements
+   only the byte methods). This amends the text-only contract sketched above
+   and was done as a small standalone change before the repository (Step 5)
+   and any viewer are built on the seam, when there were two backends and no
+   content consumers — the cheapest moment to widen it. The contract stays
+   whole-file for now; streaming / random-access reads for very large
+   documents are additive and deferred to the later binary-handling design,
+   which also owns viewers, rendering, and import.

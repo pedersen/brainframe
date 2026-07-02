@@ -91,6 +91,15 @@ void main() {
       expect(await store.readString('a.md'), 'two');
     });
 
+    test('round-trips arbitrary binary bytes without corruption', () async {
+      final store = FileSystemEngramStore(locFor('e'));
+      // A PNG signature plus bytes that are not valid UTF-8.
+      final bytes =
+          Uint8List.fromList([0x89, 0x50, 0x4E, 0x47, 0x00, 0xFF, 0xFE, 0x10]);
+      await store.writeBytes('assets/diagram.png', bytes);
+      expect(await store.readBytes('assets/diagram.png'), bytes);
+    });
+
     test('list is empty for a directory that does not exist yet', () async {
       expect(await FileSystemEngramStore(locFor('missing')).list(), isEmpty);
     });
