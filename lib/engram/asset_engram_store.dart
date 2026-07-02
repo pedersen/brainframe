@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/services.dart' show AssetBundle, AssetManifest, rootBundle;
 
 import 'engram_store.dart';
@@ -18,7 +20,7 @@ import 'engram_store.dart';
 /// supply one — and it is not optional internally: it pins prefix matching to a
 /// directory boundary (so `tutorial` never captures a `tutorial-archive`
 /// sibling) and keeps stripped paths free of a leading slash.
-class AssetEngramStore implements EngramStore {
+class AssetEngramStore extends EngramStore {
   AssetEngramStore({required String assetPrefix, AssetBundle? bundle})
       : assetPrefix =
             assetPrefix.endsWith('/') ? assetPrefix : '$assetPrefix/',
@@ -40,11 +42,13 @@ class AssetEngramStore implements EngramStore {
   }
 
   @override
-  Future<String> readString(String path) =>
-      _bundle.loadString('$assetPrefix$path');
+  Future<Uint8List> readBytes(String path) async {
+    final data = await _bundle.load('$assetPrefix$path');
+    return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+  }
 
   @override
-  Future<void> writeString(String path, String contents) {
+  Future<void> writeBytes(String path, Uint8List bytes) {
     throw UnsupportedError(
       'AssetEngramStore is read-only; cannot write "$path".',
     );

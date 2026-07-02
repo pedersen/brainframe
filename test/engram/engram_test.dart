@@ -1,23 +1,32 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:brainframe/engram/engram.dart';
 import 'package:brainframe/engram/engram_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A trivial in-memory store, standing in for the real backends that arrive in
-/// later steps, so the [Engram] model can be exercised as pure Dart.
-class _FakeStore implements EngramStore {
-  final Map<String, String> files;
+/// later steps, so the [Engram] model can be exercised as pure Dart. It
+/// implements only the byte primitives and inherits the UTF-8 text conveniences
+/// from [EngramStore].
+class _FakeStore extends EngramStore {
+  final Map<String, Uint8List> files;
 
-  _FakeStore(this.files);
+  _FakeStore(Map<String, String> initial)
+      : files = {
+          for (final entry in initial.entries)
+            entry.key: Uint8List.fromList(utf8.encode(entry.value)),
+        };
 
   @override
   Future<List<String>> list() async => files.keys.toList();
 
   @override
-  Future<String> readString(String path) async => files[path]!;
+  Future<Uint8List> readBytes(String path) async => files[path]!;
 
   @override
-  Future<void> writeString(String path, String contents) async =>
-      files[path] = contents;
+  Future<void> writeBytes(String path, Uint8List bytes) async =>
+      files[path] = bytes;
 }
 
 void main() {
