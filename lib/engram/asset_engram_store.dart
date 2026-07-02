@@ -11,16 +11,17 @@ import 'engram_store.dart';
 /// `Directory`. Asset bundles exist on web too, so the built-ins render there
 /// even though the filesystem store does not.
 ///
-/// Files live under [assetPrefix], a slash-terminated asset path such as
-/// `assets/engrams/tutorial/`. Engram-relative paths are that prefix stripped
-/// off, so callers see `welcome.md` and `notes/first-note.md`, never the bundle
-/// key.
+/// Files live under [assetPrefix], the asset path this engram's files sit under
+/// such as `assets/engrams/tutorial`. Engram-relative paths are that prefix
+/// stripped off, so callers see `welcome.md` and `notes/first-note.md`, never
+/// the bundle key. A trailing slash is normalized on, so callers need not
+/// supply one — and it is not optional internally: it pins prefix matching to a
+/// directory boundary (so `tutorial` never captures a `tutorial-archive`
+/// sibling) and keeps stripped paths free of a leading slash.
 class AssetEngramStore implements EngramStore {
-  AssetEngramStore({required this.assetPrefix, AssetBundle? bundle})
-      : assert(
-          assetPrefix.endsWith('/'),
-          'assetPrefix must end with a slash so it matches a directory cleanly',
-        ),
+  AssetEngramStore({required String assetPrefix, AssetBundle? bundle})
+      : assetPrefix =
+            assetPrefix.endsWith('/') ? assetPrefix : '$assetPrefix/',
         _bundle = bundle ?? rootBundle;
 
   /// The slash-terminated asset path this engram's files live under.

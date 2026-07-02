@@ -57,10 +57,23 @@ void main() {
     });
   });
 
-  test('assetPrefix must end with a slash', () {
+  test('a missing trailing slash is normalized on', () async {
+    final withSlash = AssetEngramStore(assetPrefix: 'assets/engrams/tutorial/');
+    final withoutSlash = AssetEngramStore(assetPrefix: 'assets/engrams/tutorial');
+
+    expect(withoutSlash.assetPrefix, 'assets/engrams/tutorial/');
+    // Both spellings list and read the same content.
+    expect(await withoutSlash.list(), unorderedEquals(await withSlash.list()));
     expect(
-      () => AssetEngramStore(assetPrefix: 'assets/engrams/tutorial'),
-      throwsA(isA<AssertionError>()),
+      await withoutSlash.readString('welcome.md'),
+      contains('Welcome to BrainFrame'),
+    );
+  });
+
+  test('a slash-terminated prefix is left unchanged', () {
+    expect(
+      AssetEngramStore(assetPrefix: 'assets/engrams/help/').assetPrefix,
+      'assets/engrams/help/',
     );
   });
 }
