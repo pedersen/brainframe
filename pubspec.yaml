@@ -85,8 +85,17 @@ flutter:
   uses-material-design: true
 
   # The BrainFrame logo, shown on the home screen and used as the icon source.
+  #
+  # The built-in tutorial and help engrams ship as bundled assets, read
+  # read-only through AssetEngramStore. Flutter's asset-directory listing is
+  # NOT recursive — a trailing-slash entry bundles only the files directly in
+  # that directory — so every subdirectory (e.g. tutorial/notes/) is listed on
+  # its own line.
   assets:
     - brainframe.png
+    - assets/engrams/tutorial/
+    - assets/engrams/tutorial/notes/
+    - assets/engrams/help/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
