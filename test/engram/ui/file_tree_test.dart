@@ -64,6 +64,49 @@ void main() {
     expect(row.properties.button, isTrue);
   });
 
+  testWidgets('a long file name is not clipped and can scroll horizontally',
+      (tester) async {
+    const longName =
+        'a-very-long-file-name-that-overflows-the-narrow-sidebar.md';
+    await tester.pumpWidget(_host(FileTree(
+      nodes: buildFileTree([longName]),
+      selectedPath: null,
+      onSelectFile: (_) {},
+    )));
+
+    // The full name is laid out (no ellipsis truncation).
+    final text = tester.widget<Text>(find.text(longName));
+    expect(text.overflow, isNot(TextOverflow.ellipsis));
+
+    // Its row extends past the 280px sidebar, so the horizontal scroll view is
+    // actually scrollable rather than clamping the name to the visible width.
+    final horizontal = tester.widget<SingleChildScrollView>(
+      find.byWidgetPredicate((w) =>
+          w is SingleChildScrollView && w.scrollDirection == Axis.horizontal),
+    );
+    final controller = horizontal.controller!;
+    expect(controller.position.maxScrollExtent, greaterThan(0));
+  });
+
+  testWidgets('large engrams are virtualized: only visible rows are built',
+      (tester) async {
+    // A thousand files in a ~600px-tall viewport: a lazy list builds only the
+    // handful on screen, not all thousand. Guards against a regression back to
+    // an eager Column (which laid every row out on every frame).
+    final files = [for (var i = 0; i < 1000; i++) 'note-$i.md'];
+    await tester.pumpWidget(_host(FileTree(
+      nodes: buildFileTree(files),
+      selectedPath: null,
+      onSelectFile: (_) {},
+    )));
+
+    // Every file row carries a document glyph; only visible rows exist.
+    final built = find.byIcon(Icons.description_outlined).evaluate().length;
+    expect(built, greaterThan(0));
+    expect(built, lessThan(100),
+        reason: 'a virtualized list should build ~a screenful, not all 1000');
+  });
+
   testWidgets('an empty engram shows a placeholder', (tester) async {
     await tester.pumpWidget(_host(FileTree(
       nodes: const [],

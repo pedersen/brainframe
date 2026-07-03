@@ -8,6 +8,7 @@ import 'package:brainframe/engram/engram_repository.dart';
 import 'package:brainframe/engram/engram_scope.dart';
 import 'package:brainframe/engram/engram_store.dart';
 import 'package:brainframe/engram/ui/engram_browser.dart';
+import 'package:brainframe/engram/ui/markdown_reader.dart';
 import 'package:brainframe/theme/app_settings.dart';
 import 'package:brainframe/theme/design_language.dart';
 import 'package:flutter/material.dart';
@@ -120,10 +121,11 @@ void main() {
     await tester.pumpWidget(harness(repo()));
     await tester.pumpAndSettle();
 
-    // The breadcrumb lives inside the reader's scroll view (the app-bar title
-    // is the other "welcome.md"). It should sit near the top, not centered.
+    // The breadcrumb lives inside the reader (the app-bar title and the
+    // sidebar file row are the other "welcome.md"s). Scope to the reader, then
+    // check it sits near the top, not centered.
     final breadcrumb = find.descendant(
-      of: find.byType(SingleChildScrollView),
+      of: find.byType(MarkdownReader),
       matching: find.text('welcome.md'),
     );
     expect(breadcrumb, findsOneWidget);
