@@ -57,7 +57,9 @@ class MarkdownReader extends StatelessWidget {
         );
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      child: Center(
+      // Top-aligned, not centered: reading starts at the top of the pane.
+      child: Align(
+        alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
           child: Column(
