@@ -12,6 +12,7 @@ import 'package:brainframe/engram/desktop_folder_adoption.dart';
 import 'package:brainframe/engram/engram.dart';
 import 'package:brainframe/engram/engram_repository.dart';
 import 'package:brainframe/engram/engram_scope.dart';
+import 'package:brainframe/engram/engram_startup_gate.dart';
 import 'package:brainframe/engram/engram_store.dart';
 import 'package:brainframe/engram/fs/engram_location.dart';
 import 'package:brainframe/engram/fs/fs_store.dart';

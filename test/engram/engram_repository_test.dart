@@ -236,4 +236,25 @@ void main() {
       expect(await repoWith().lastOpened, isNull);
     });
   });
+
+  group('openInitialEngram', () {
+    test('opens the built-in tutorial on a true first run', () async {
+      final engram = await repoWith().openInitialEngram();
+      expect(engram.id, builtinTutorialId);
+      expect(engram.readOnly, isTrue);
+    });
+
+    test('reopens the last-opened engram when one still resolves', () async {
+      final repo = repoWith();
+      final created = await repo.create('Personal');
+      await repo.setLastOpened(created.id);
+      expect((await repo.openInitialEngram()).id, created.id);
+    });
+
+    test('falls back to the tutorial when the last-opened id is gone',
+        () async {
+      await repoWith().setLastOpened('nonexistent-id');
+      expect((await repoWith().openInitialEngram()).id, builtinTutorialId);
+    });
+  });
 }

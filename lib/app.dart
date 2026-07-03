@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'engram/engram_repository.dart';
+import 'engram/engram_startup_gate.dart';
 import 'home_page.dart';
 import 'theme/app_settings.dart';
 import 'theme/app_theme.dart';
@@ -10,8 +12,16 @@ import 'theme/app_theme.dart';
 /// Flutter's `.adaptive` widgets rely on. The Cupertino feel on Apple
 /// platforms comes from [AppSettings]-driven widgets such as `AppScaffold`,
 /// not from forking the app root into a separate `CupertinoApp`.
+///
+/// The active engram is resolved and held below the `MaterialApp` by an
+/// [EngramStartupGate] + `EngramScope`, so switching engrams rebuilds only the
+/// content, never this root.
 class BrainFrameApp extends StatelessWidget {
-  const BrainFrameApp({super.key});
+  const BrainFrameApp({super.key, required this.repository});
+
+  /// Discovers and remembers engrams; supplies the startup engram and persists
+  /// switches. Injected so tests (and later, alternate hosts) can substitute it.
+  final EngramRepository repository;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +39,11 @@ class BrainFrameApp extends StatelessWidget {
           highContrastTheme: AppTheme.lightHighContrast,
           highContrastDarkTheme: AppTheme.darkHighContrast,
           themeMode: AppSettings.of(context).themeMode,
-          home: const HomePage(),
+          home: EngramStartupGate(
+            resolveInitialEngram: repository.openInitialEngram,
+            onSwitched: (engram) => repository.setLastOpened(engram.id),
+            child: const HomePage(),
+          ),
         ),
       ),
     );

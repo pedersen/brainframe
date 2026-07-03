@@ -25,6 +25,10 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
+# VS Code Counter extension output (line-count reports); a local analysis
+# artifact, not part of the project.
+.VSCodeCounter/
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
