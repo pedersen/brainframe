@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -179,8 +180,17 @@ Future<List<Engram>> discoverContainerEngrams(String containerPath) async {
     if (!await marker.exists()) continue;
     try {
       engrams.add(await openFileSystemEngram(EngramLocation(entity.path)));
-    } catch (_) {
-      continue; // malformed/unreadable marker — skip, never crash the scan
+    } catch (error, stackTrace) {
+      // Malformed/unreadable marker — skip, never crash the scan, but log it
+      // rather than dropping the child silently.
+      developer.log(
+        'Skipped "${entity.path}": unreadable engram marker.',
+        name: 'brainframe.engram.fs',
+        level: 900, // WARNING, per package:logging's Level.WARNING
+        error: error,
+        stackTrace: stackTrace,
+      );
+      continue;
     }
   }
   return engrams;

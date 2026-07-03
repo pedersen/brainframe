@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:flutter/services.dart' show AssetBundle;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'built_in_engrams.dart';
 import 'engram.dart';
 import 'fs/fs_store.dart';
+
+/// Logger name for discovery/registry diagnostics (see `dart:developer`).
+const String _logName = 'brainframe.engram.repository';
+
+/// Severity aligned with `package:logging`'s `Level.WARNING`.
+const int _warning = 900;
 
 /// Discovers, creates, and remembers engrams.
 ///
@@ -49,9 +56,17 @@ class EngramRepository {
       for (final engram in await discoverContainerEngrams(containerPath)) {
         if (seenIds.add(engram.id)) available.add(engram);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
       // No filesystem (web), or a missing/unreadable container — the built-ins
-      // still stand. Discovery never crashes over a bad container.
+      // still stand. Discovery never crashes over a bad container, but the skip
+      // is logged rather than swallowed silently.
+      developer.log(
+        'Container scan skipped; surfacing built-ins only.',
+        name: _logName,
+        level: _warning,
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
 
     // Location B — registry roots outside the container.
@@ -59,9 +74,17 @@ class EngramRepository {
       try {
         final engram = await openFileSystemEngram(EngramLocation(entry.path));
         if (seenIds.add(engram.id)) available.add(engram);
-      } catch (_) {
+      } catch (error, stackTrace) {
         // Deleted folder, stale token, not-yet-synced file: keep it registered
         // and surface it as reconnectable rather than silently dropping it.
+        developer.log(
+          'Registry root "${entry.path}" (${entry.displayName}) is '
+          'unavailable; surfacing as reconnectable.',
+          name: _logName,
+          level: _warning,
+          error: error,
+          stackTrace: stackTrace,
+        );
         unavailable.add(
           UnavailableEngram(
             id: entry.id,
@@ -140,8 +163,15 @@ class EngramRepository {
         entries.add(
           _RegistryEntry.fromJson(jsonDecode(line) as Map<String, dynamic>),
         );
-      } catch (_) {
+      } catch (error, stackTrace) {
         // Skip a corrupt registry line rather than failing the whole app.
+        developer.log(
+          'Skipped a corrupt registry entry.',
+          name: _logName,
+          level: _warning,
+          error: error,
+          stackTrace: stackTrace,
+        );
       }
     }
     return entries;
