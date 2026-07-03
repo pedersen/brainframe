@@ -42,7 +42,7 @@ class BrainFrameApp extends StatelessWidget {
           home: EngramStartupGate(
             resolveInitialEngram: repository.openInitialEngram,
             onSwitched: (engram) => repository.setLastOpened(engram.id),
-            child: const EngramBrowser(),
+            child: EngramBrowser(repository: repository),
           ),
         ),
       ),

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../widgets/app_scaffold.dart';
+import '../built_in_engrams.dart';
 import '../engram.dart';
+import '../engram_repository.dart';
 import '../engram_scope.dart';
+import 'engram_switcher.dart';
 import 'file_tree.dart';
 import 'file_tree_node.dart';
+import 'help_overlay.dart';
 import 'markdown_reader.dart';
 
 /// Width below which the sidebar becomes an off-canvas drawer (phone).
@@ -19,7 +23,10 @@ const double _drawerBreakpoint = 720;
 /// a phone, closes the drawer). This is the structure-only Step 8 UI — the
 /// design handoff's bespoke styling is deferred.
 class EngramBrowser extends StatefulWidget {
-  const EngramBrowser({super.key});
+  const EngramBrowser({super.key, required this.repository});
+
+  /// Supplies the engram switcher its list of engrams and create/adopt actions.
+  final EngramRepository repository;
 
   @override
   State<EngramBrowser> createState() => _EngramBrowserState();
@@ -51,6 +58,13 @@ class _EngramBrowserState extends State<EngramBrowser> {
           leading: isNarrow
               ? _MenuButton(onPressed: () => setState(() => _drawerOpen = true))
               : null,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.help_outline),
+              tooltip: 'Help',
+              onPressed: () => showHelpOverlay(context, builtInHelpEngram()),
+            ),
+          ],
           body: _body(
             context,
             engram: engram,
@@ -76,6 +90,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
   }) {
     final sidebar = _Sidebar(
       engram: engram,
+      repository: widget.repository,
       nodes: buildFileTree(paths),
       selectedPath: selected,
       onSelectFile: _selectFile,
@@ -178,12 +193,14 @@ String _fileName(String path) => path.split('/').last;
 class _Sidebar extends StatelessWidget {
   const _Sidebar({
     required this.engram,
+    required this.repository,
     required this.nodes,
     required this.selectedPath,
     required this.onSelectFile,
   });
 
   final Engram engram;
+  final EngramRepository repository;
   final List<FileTreeNode> nodes;
   final String? selectedPath;
   final void Function(String path) onSelectFile;
@@ -205,41 +222,9 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
             const Divider(height: 1),
-            _SidebarFooter(engram: engram),
+            EngramSwitcher(repository: repository, current: engram),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SidebarFooter extends StatelessWidget {
-  const _SidebarFooter({required this.engram});
-
-  final Engram engram;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Icon(Icons.book_outlined, size: 18, color: theme.hintColor),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              engram.displayName,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleSmall,
-            ),
-          ),
-          if (engram.readOnly)
-            Semantics(
-              label: 'Read-only engram',
-              child: Icon(Icons.lock_outline, size: 15, color: theme.hintColor),
-            ),
-        ],
       ),
     );
   }
