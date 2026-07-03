@@ -160,3 +160,58 @@ Future<String> applicationEngramContainerPath() async {
   final directory = await getApplicationDocumentsDirectory();
   return directory.path;
 }
+
+/// Scans [containerPath] one level deep and opens every child directory that
+/// carries a valid marker.
+///
+/// Children without a marker are ignored (ordinary folders the user may have
+/// dropped in), and a child whose marker is unreadable or malformed is skipped
+/// rather than crashing the whole scan. Nesting is not followed — the design
+/// forbids an engram root inside another — so only direct children are checked.
+Future<List<Engram>> discoverContainerEngrams(String containerPath) async {
+  final container = Directory(containerPath);
+  if (!await container.exists()) return const [];
+  final engrams = <Engram>[];
+  await for (final entity in container.list(followLinks: false)) {
+    if (entity is! Directory) continue;
+    final marker =
+        File('${entity.path}/$markerDirectoryName/$metadataFileName');
+    if (!await marker.exists()) continue;
+    try {
+      engrams.add(await openFileSystemEngram(EngramLocation(entity.path)));
+    } catch (_) {
+      continue; // malformed/unreadable marker — skip, never crash the scan
+    }
+  }
+  return engrams;
+}
+
+/// Creates a new engram inside [containerPath], deriving a filesystem-safe
+/// folder name from [displayName] and avoiding collisions with existing
+/// siblings (`Personal`, then `Personal 2`, …).
+Future<Engram> createContainerEngram(
+  String containerPath,
+  String displayName,
+) async {
+  final location =
+      await _freeChildLocation(containerPath, _safeFolderName(displayName));
+  return createFileSystemEngram(location: location, displayName: displayName);
+}
+
+String _safeFolderName(String displayName) {
+  final cleaned = displayName.replaceAll(RegExp(r'[\\/]+'), '-').trim();
+  return cleaned.isEmpty ? 'Engram' : cleaned;
+}
+
+Future<EngramLocation> _freeChildLocation(
+  String containerPath,
+  String baseName,
+) async {
+  var candidate = '$containerPath/$baseName';
+  var suffix = 2;
+  while (await Directory(candidate).exists()) {
+    candidate = '$containerPath/$baseName $suffix';
+    suffix++;
+  }
+  return EngramLocation(candidate);
+}
