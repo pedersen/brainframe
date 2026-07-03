@@ -168,4 +168,70 @@ void main() {
       expect(await applicationEngramContainerPath(), '/fake/docs');
     });
   });
+
+  group('discoverContainerEngrams', () {
+    test('opens children with valid markers, ignores plain folders', () async {
+      await createFileSystemEngram(
+        location: EngramLocation('${tempDir.path}/A'),
+        displayName: 'A',
+      );
+      await Directory('${tempDir.path}/plain').create();
+
+      final found = await discoverContainerEngrams(tempDir.path);
+      expect(found.map((e) => e.displayName), ['A']);
+    });
+
+    test('skips a child with a malformed marker without crashing', () async {
+      final bad = File('${tempDir.path}/B/.brainframe/engram.json');
+      await bad.parent.create(recursive: true);
+      await bad.writeAsString('{ not json');
+      await createFileSystemEngram(
+        location: EngramLocation('${tempDir.path}/A'),
+        displayName: 'A',
+      );
+
+      final found = await discoverContainerEngrams(tempDir.path);
+      expect(found.map((e) => e.displayName), ['A']);
+    });
+
+    test('returns empty for a non-existent container', () async {
+      expect(
+        await discoverContainerEngrams('${tempDir.path}/missing'),
+        isEmpty,
+      );
+    });
+  });
+
+  group('createContainerEngram', () {
+    test('derives a folder from the display name', () async {
+      final engram = await createContainerEngram(tempDir.path, 'Personal');
+      expect(
+        Directory('${tempDir.path}/Personal/.brainframe').existsSync(),
+        isTrue,
+      );
+      expect(engram.displayName, 'Personal');
+    });
+
+    test('avoids collisions with an existing sibling', () async {
+      await createContainerEngram(tempDir.path, 'Personal');
+      await createContainerEngram(tempDir.path, 'Personal');
+      expect(
+        Directory('${tempDir.path}/Personal 2/.brainframe').existsSync(),
+        isTrue,
+      );
+    });
+
+    test('sanitizes path separators and falls back for a blank name', () async {
+      await createContainerEngram(tempDir.path, 'Notes/2024');
+      expect(
+        Directory('${tempDir.path}/Notes-2024/.brainframe').existsSync(),
+        isTrue,
+      );
+      await createContainerEngram(tempDir.path, '   ');
+      expect(
+        Directory('${tempDir.path}/Engram/.brainframe').existsSync(),
+        isTrue,
+      );
+    });
+  });
 }

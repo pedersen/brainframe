@@ -19,4 +19,15 @@ void main() {
   test('applicationEngramContainerPath is unsupported on the web stub', () {
     expect(() => applicationEngramContainerPath(), throwsUnsupportedError);
   });
+
+  test('discoverContainerEngrams is unsupported on the web stub', () {
+    expect(() => discoverContainerEngrams('/anywhere'), throwsUnsupportedError);
+  });
+
+  test('createContainerEngram is unsupported on the web stub', () {
+    expect(
+      () => createContainerEngram('/anywhere', 'x'),
+      throwsUnsupportedError,
+    );
+  });
 }

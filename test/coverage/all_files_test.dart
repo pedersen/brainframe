@@ -7,6 +7,7 @@
 
 import 'package:brainframe/app.dart';
 import 'package:brainframe/engram/asset_engram_store.dart';
+import 'package:brainframe/engram/built_in_engrams.dart';
 import 'package:brainframe/engram/engram.dart';
 import 'package:brainframe/engram/engram_repository.dart';
 import 'package:brainframe/engram/engram_scope.dart';

@@ -22,3 +22,9 @@ Future<Engram> openFileSystemEngram(EngramLocation location) =>
 
 Future<String> applicationEngramContainerPath() =>
     throw UnsupportedError(_unsupported);
+
+Future<List<Engram>> discoverContainerEngrams(String containerPath) =>
+    throw UnsupportedError(_unsupported);
+
+Future<Engram> createContainerEngram(String containerPath, String displayName) =>
+    throw UnsupportedError(_unsupported);
