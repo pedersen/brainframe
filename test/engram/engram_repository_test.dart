@@ -158,6 +158,48 @@ void main() {
       expect(back.available.any((e) => e.displayName == 'External'), isTrue);
     });
 
+    test('adoptFolder turns a plain folder into a registered engram', () async {
+      final plainPath = '${tempRoot.path}/Journal';
+      await Directory(plainPath).create(recursive: true);
+
+      final repo = repoWith();
+      final adopted = await repo.adoptFolder(EngramLocation(plainPath));
+      expect(adopted.readOnly, isFalse);
+      expect(adopted.displayName, 'Journal'); // derived from the folder name
+      expect(
+        File('$plainPath/.brainframe/engram.json').existsSync(),
+        isTrue,
+      );
+
+      final discovery = await repo.discover();
+      expect(discovery.available.any((e) => e.id == adopted.id), isTrue);
+    });
+
+    test('adoptFolder honours an explicit display name', () async {
+      final plainPath = '${tempRoot.path}/raw-folder';
+      await Directory(plainPath).create(recursive: true);
+      final adopted = await repoWith()
+          .adoptFolder(EngramLocation(plainPath), displayName: 'My Notes');
+      expect(adopted.displayName, 'My Notes');
+    });
+
+    test('adoptFolder opens an existing engram without a second registry row',
+        () async {
+      final repo = repoWith();
+      final first = await repo.adoptFolder(EngramLocation(externalPath));
+      // Re-adopting the same, now-marked folder keeps its identity and does not
+      // duplicate the registry entry.
+      final second = await repo.adoptFolder(EngramLocation(externalPath));
+      expect(second.id, first.id);
+      expect(second.displayName, 'External');
+
+      final discovery = await repo.discover();
+      expect(
+        discovery.available.where((e) => e.id == first.id).length,
+        1,
+      );
+    });
+
     test('a corrupt registry line is skipped, not fatal', () async {
       SharedPreferencesAsyncPlatform.instance =
           InMemorySharedPreferencesAsync.withData({
