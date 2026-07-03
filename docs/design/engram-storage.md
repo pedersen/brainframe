@@ -1,6 +1,8 @@
 # Engram storage design
 
-- **Status:** accepted — all six decisions resolved (2026-06-30)
+- **Status:** accepted (2026-06-30); amended 2026-07-02 (Decision 7 —
+  bytes-first store) and 2026-07-03 (Decision 8 — help dual-mode, refines
+  Decision 6)
 - **Author:** Claude
 - **Date:** 2026-06-30
 
@@ -341,7 +343,9 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
    consulted while editing. This refines Decision 2 — `EngramScope` still
    holds exactly one active engram (an editable one, or the tutorial), while
    the help overlay is a non-exclusive reader on top, reading from the same
-   asset-bundle store, and never becomes the active engram.
+   asset-bundle store. **(Amended 2026-07-03 — see Decision 8: help may
+   *also* be opened as a full engram switch, so it is no longer overlay-only;
+   the overlay remains its default "consult while working" presentation.)**
 7. **`EngramStore` is bytes-first; binary content is first-class**
    (2026-07-02). Engrams hold images, PDFs, and EPUBs alongside markdown —
    document reading is a founding product pillar, not an edge case — so the
@@ -354,3 +358,16 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
    whole-file for now; streaming / random-access reads for very large
    documents are additive and deferred to the later binary-handling design,
    which also owns viewers, rendering, and import.
+8. **Help is available both as a full engram switch and as a peek overlay**
+   (2026-07-03). Refines Decision 6, which made help overlay-only. Because the
+   help engram is just an `Engram` over an `AssetEngramStore`, "overlay" and
+   "switch" are two presentations of one store, not two things to build: the
+   floating overlay reads help without touching `EngramScope` (a mid-task peek
+   that returns you exactly where you were), while selecting Help in the engram
+   switcher makes it the active engram — read it as a place, with its own file
+   tree. The two entry points stay deliberately distinct: a `?` affordance in
+   the app chrome peeks, a switcher row travels there. The tutorial stays
+   switch-only, since it is a start-here-then-leave place rather than reference
+   material consulted mid-task. Adopted during the Step 8 UI work and informed
+   by the PKM design handoff; it costs nothing beyond listing help in the
+   switcher, and both paths read the same asset-bundle content.

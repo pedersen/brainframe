@@ -224,10 +224,44 @@ graphs.)
   markdown viewer (likely `flutter_markdown`), through the adaptive
   `AppScaffold`. Read-only engrams hide create/edit/delete affordances.
 - Tutorial opens as a full switch (A); help opens as a read-only reader
-  overlay over the current engram (B) (Decision 6).
+  overlay over the current engram (B) — **and, per Decision 8, may also be
+  opened as a full engram from the switcher** (A or B, user's choice).
 - **Accessibility (required by rule):** every interactive element gets
   explicit `Semantics` (`label`, `button: true`, `enabled:`) before the step
   is considered done; run `flutter test --accessibility`.
+
+**Design adoption — structure only (2026-07-03).** A PKM design handoff
+(`design_handoff_pkm/`, an Obsidian-style reading-notes mockup, dark/light,
+desktop/tablet/phone) informs this step. After review we adopt its **layout
+and information architecture only**, rendering everything in BrainFrame's
+existing adaptive styling (`AppScaffold`, `AppTheme`, indigo brand). The
+mockup's visual language — Newsreader serif, purple accent, tag pills,
+highlight callouts, mono source tokens — is **deferred to later polish**, as
+are its editor-era regions (live-preview editor, open-note tabs, the note-list
+"Columns" pane, sidebar/top-bar search, status bar, frontmatter meta,
+backlinks, wikilink/tag/checkbox interactivity). Concretely for this step:
+
+- **Reflow (from the mockup):** desktop/tablet show sidebar + reader
+  side-by-side (master-detail); phone shows the reader full-screen with the
+  sidebar as an off-canvas drawer (hamburger + scrim). Drawer slide and scrim
+  fade are gated behind Reduce-Motion (`MediaQuery.disableAnimations`) for the
+  e-ink target.
+- **File browser:** a shallow **folder tree** derived from the flat paths
+  `EngramStore.list()` returns (disclosure triangles), not a flat list.
+- **Engram switcher:** lives in the **sidebar footer** (same hierarchy as the
+  file tree, pinned to the bottom), showing the current engram and, on tap, a
+  switcher listing the built-ins (Tutorial, Help) and user engrams, with
+  reconnectable/unavailable engrams shown **disabled** (the reconnect flow is
+  deferred). App-level actions — `New engram`, `Open folder…` (desktop, Step 6)
+  — live with it. First run still lands *in* the tutorial (Decision 5), never
+  on a picker screen.
+- **Help (Decision 8):** a `?` affordance in the app bar opens the floating
+  read-only overlay (peek, does not change the active engram); Help also
+  appears as a row in the switcher to open it as a full engram.
+- **Reader:** a file-path breadcrumb plus the markdown body rendered with
+  theme defaults (no frontmatter/tag/callout styling yet). Fonts start from
+  platform serif/mono fallbacks; bundling Newsreader + JetBrains Mono is a
+  later polish task, tracked with the deferred visual language above.
 
 ### Step 9 — iOS Files keys (designed, unverified)
 
