@@ -153,8 +153,8 @@ graphs.)
 
 ### Step 1 — Dependencies and scaffolding
 
-- Add `path_provider` (container directories) and `file_picker` (desktop
-  directory dialog) to `pubspec.yaml`.
+- Add `path_provider` (container directories) and a desktop directory-dialog
+  package to `pubspec.yaml` (`file_selector` — see the Step 6 note).
 - Decide ULID: a ~30-line Crockford-base32 helper (no dependency) or the
   `ulid` package. Lean toward the helper to keep the dependency surface
   small.
@@ -202,9 +202,14 @@ graphs.)
 
 ### Step 6 — Desktop free folder choice
 
-- Desktop: `file_picker` directory dialog → adopt the folder (create a
+- Desktop: a native directory dialog → adopt the folder (create a
   marker if absent, else open) → persist as a registry root (plain-path
   token). Guarded to desktop platforms.
+- **Amended 2026-07-03:** originally built on `file_picker`, swapped to
+  `file_selector` during Step 8 — `file_picker` 11's legacy Kotlin-Gradle-Plugin
+  apply broke the Android build even though the picker is desktop-only, and
+  Flutter warns that KGP-applying plugins will stop building. `file_selector`
+  (Flutter-team, built-in Kotlin) exposes the same `getDirectoryPath()`.
 - **Pi caveat:** flutter-pi has no native file dialog, so Pi's
   pick-any-folder needs a small in-app directory browser instead. Defer that
   to the Pi-usability work; the container-default engram already works on Pi.
@@ -282,8 +287,8 @@ backlinks, wikilink/tag/checkbox interactivity). Concretely for this step:
 | --- | --- | --- |
 | `coverde` | Coverage filter + threshold check (global tool) | Step 0 |
 | `path_provider` | Container directories on every platform | Step 1 |
-| `file_picker` | Desktop directory dialog | Step 6 |
-| `flutter_markdown` | Minimal read-only markdown viewer | Step 8 |
+| `file_selector` | Desktop directory dialog (see note) | Step 6 |
+| `flutter_markdown_plus` | Minimal read-only markdown viewer | Step 8 |
 | ULID helper or `ulid` | Stable engram ids | Step 1/2 |
 
 ## Testing and workflow
