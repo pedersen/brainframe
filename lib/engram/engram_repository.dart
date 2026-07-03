@@ -180,6 +180,15 @@ class EngramRepository {
   Future<void> setLastOpened(String id) =>
       _prefs.setString(_lastOpenedKey, id);
 
+  /// The engram to open at startup: the last-opened one if it still resolves,
+  /// otherwise the built-in tutorial on a true first run (Decision 5). Always
+  /// succeeds — the tutorial is a bundled built-in that is always present.
+  Future<Engram> openInitialEngram() async =>
+      await lastOpened ?? _builtInTutorial();
+
+  Engram _builtInTutorial() => builtInEngrams(bundle: _assetBundle)
+      .firstWhere((engram) => engram.id == builtinTutorialId);
+
   Future<List<_RegistryEntry>> _readRegistry() async {
     final raw = await _prefs.getStringList(_registryKey) ?? const <String>[];
     final entries = <_RegistryEntry>[];

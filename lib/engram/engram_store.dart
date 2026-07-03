@@ -48,4 +48,14 @@ abstract class EngramStore {
   /// [writeBytes] does.
   Future<void> writeString(String path, String contents) =>
       writeBytes(path, Uint8List.fromList(utf8.encode(contents)));
+
+  /// Releases any resources this store holds — an open location handle, a file
+  /// watcher — when its engram is switched away from or the app tears down.
+  ///
+  /// A no-op for v1's stateless stores (the asset bundle, a plain filesystem
+  /// path); the seam exists so a future security-scoped filesystem handle
+  /// (Location B, v2) can be freed before the next engram's store is used, per
+  /// Decision 2. `EngramScope` calls this on the outgoing engram; releasing a
+  /// store twice, or using it after release, is a backend's own concern.
+  Future<void> release() async {}
 }
