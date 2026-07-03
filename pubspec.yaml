@@ -50,6 +50,9 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+  # Test-only: provides InMemorySharedPreferencesAsync, the in-memory fake used
+  # to exercise SharedPreferencesAsync-backed code without a platform channel.
+  shared_preferences_platform_interface: ^2.4.2
 
 # Launcher icons generated from the BrainFrame logo for every platform.
 # Regenerate with: dart run flutter_launcher_icons

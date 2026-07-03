@@ -29,14 +29,14 @@ const int _warning = 900;
 /// mount and web can decline; a resolver that throws simply yields the built-ins.
 class EngramRepository {
   EngramRepository({
-    required SharedPreferences preferences,
+    required SharedPreferencesAsync preferences,
     required Future<String> Function() containerPathResolver,
     AssetBundle? bundle,
   })  : _prefs = preferences,
         _resolveContainerPath = containerPathResolver,
         _assetBundle = bundle;
 
-  final SharedPreferences _prefs;
+  final SharedPreferencesAsync _prefs;
   final Future<String> Function() _resolveContainerPath;
   final AssetBundle? _assetBundle;
 
@@ -70,7 +70,7 @@ class EngramRepository {
     }
 
     // Location B — registry roots outside the container.
-    for (final entry in _readRegistry()) {
+    for (final entry in await _readRegistry()) {
       try {
         final engram = await openFileSystemEngram(EngramLocation(entry.path));
         if (seenIds.add(engram.id)) available.add(engram);
@@ -111,7 +111,7 @@ class EngramRepository {
   /// by validating its marker and adding it to the registry.
   Future<Engram> adopt(EngramLocation location) async {
     final engram = await openFileSystemEngram(location);
-    final entries = _readRegistry()
+    final entries = (await _readRegistry())
       ..removeWhere((e) => e.id == engram.id || e.path == location.path);
     entries.add(
       _RegistryEntry(
@@ -135,14 +135,14 @@ class EngramRepository {
         'built-in engrams cannot be forgotten',
       );
     }
-    final entries = _readRegistry()..removeWhere((e) => e.id == id);
+    final entries = (await _readRegistry())..removeWhere((e) => e.id == id);
     await _writeRegistry(entries);
   }
 
   /// The engram the app last opened, or null if none is set or it no longer
   /// resolves to an available engram.
   Future<Engram?> get lastOpened async {
-    final id = _prefs.getString(_lastOpenedKey);
+    final id = await _prefs.getString(_lastOpenedKey);
     if (id == null) return null;
     final discovery = await discover();
     for (final engram in discovery.available) {
@@ -155,8 +155,8 @@ class EngramRepository {
   Future<void> setLastOpened(String id) =>
       _prefs.setString(_lastOpenedKey, id);
 
-  List<_RegistryEntry> _readRegistry() {
-    final raw = _prefs.getStringList(_registryKey) ?? const <String>[];
+  Future<List<_RegistryEntry>> _readRegistry() async {
+    final raw = await _prefs.getStringList(_registryKey) ?? const <String>[];
     final entries = <_RegistryEntry>[];
     for (final line in raw) {
       try {
