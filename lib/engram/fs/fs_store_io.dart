@@ -127,6 +127,27 @@ Future<Engram> createFileSystemEngram({
   );
 }
 
+/// Adopts the folder at [location]: opens it if it already carries a marker,
+/// otherwise creates a fresh engram there with [displayName].
+///
+/// This is the "adopt a folder the user picked" primitive. An existing engram
+/// is reused as-is — its stored id and display name win, and [displayName] is
+/// ignored — so re-picking a known folder never rewrites its marker. A plain
+/// folder (or one that does not exist yet) is turned into an engram in place.
+///
+/// Propagates [EngramMetadataException] if an existing marker is malformed.
+Future<Engram> openOrCreateFileSystemEngram(
+  EngramLocation location, {
+  required String displayName,
+}) async {
+  final metaFile =
+      File('${location.path}/$markerDirectoryName/$metadataFileName');
+  if (await metaFile.exists()) {
+    return openFileSystemEngram(location);
+  }
+  return createFileSystemEngram(location: location, displayName: displayName);
+}
+
 /// Opens an existing engram at [location] by reading its marker.
 ///
 /// Throws [StateError] if there is no marker there; propagates

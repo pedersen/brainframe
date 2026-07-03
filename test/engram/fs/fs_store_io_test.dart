@@ -152,6 +152,45 @@ void main() {
     });
   });
 
+  group('openOrCreateFileSystemEngram', () {
+    test('creates a fresh engram when the folder has no marker', () async {
+      final loc = locFor('Fresh');
+      final engram = await openOrCreateFileSystemEngram(
+        loc,
+        displayName: 'Fresh',
+      );
+      expect(engram.displayName, 'Fresh');
+      expect(engram.readOnly, isFalse);
+      expect(
+        File('${loc.path}/.brainframe/engram.json').existsSync(),
+        isTrue,
+      );
+    });
+
+    test('opens an existing engram and keeps its identity, ignoring displayName',
+        () async {
+      final loc = locFor('Existing');
+      final created =
+          await createFileSystemEngram(location: loc, displayName: 'Existing');
+      final opened =
+          await openOrCreateFileSystemEngram(loc, displayName: 'Ignored');
+      expect(opened.id, created.id);
+      expect(opened.displayName, 'Existing');
+    });
+
+    test('propagates a metadata error for a malformed existing marker',
+        () async {
+      final loc = locFor('broken');
+      final metaFile = File('${loc.path}/.brainframe/engram.json');
+      await metaFile.parent.create(recursive: true);
+      await metaFile.writeAsString('{ not json');
+      expect(
+        () => openOrCreateFileSystemEngram(loc, displayName: 'x'),
+        throwsA(isA<EngramMetadataException>()),
+      );
+    });
+  });
+
   group('applicationEngramContainerPath', () {
     const channel = MethodChannel('plugins.flutter.io/path_provider');
 

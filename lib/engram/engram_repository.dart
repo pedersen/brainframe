@@ -107,10 +107,35 @@ class EngramRepository {
     return createContainerEngram(containerPath, displayName);
   }
 
-  /// Adopts an existing engram at [location] (e.g. a folder picked on desktop)
-  /// by validating its marker and adding it to the registry.
+  /// Adopts an existing engram at [location] by validating its marker and
+  /// adding it to the registry. The folder must already be an engram; to adopt
+  /// a plain folder the user picked, use [adoptFolder] instead.
   Future<Engram> adopt(EngramLocation location) async {
     final engram = await openFileSystemEngram(location);
+    return _register(engram, location);
+  }
+
+  /// Adopts the folder at [location] as a registry root, turning it into an
+  /// engram if it is not one already (the desktop "choose any folder" flow).
+  ///
+  /// A folder that already carries a marker is opened and keeps its identity; a
+  /// plain folder gets a fresh marker whose display name comes from
+  /// [displayName], defaulting to the folder's own name. Either way the result
+  /// is persisted as a plain-path registry root.
+  Future<Engram> adoptFolder(
+    EngramLocation location, {
+    String? displayName,
+  }) async {
+    final engram = await openOrCreateFileSystemEngram(
+      location,
+      displayName: displayName ?? _folderDisplayName(location.path),
+    );
+    return _register(engram, location);
+  }
+
+  /// Persists [engram] at [location] as a registry root, replacing any prior
+  /// entry with the same id or path so re-adopting never duplicates a row.
+  Future<Engram> _register(Engram engram, EngramLocation location) async {
     final entries = (await _readRegistry())
       ..removeWhere((e) => e.id == engram.id || e.path == location.path);
     entries.add(
@@ -182,6 +207,19 @@ class EngramRepository {
         _registryKey,
         [for (final entry in entries) jsonEncode(entry.toJson())],
       );
+}
+
+/// Derives a display name from an absolute folder [path] — its final segment,
+/// tolerating either separator and any trailing slashes, falling back to
+/// `Engram` for a root or otherwise nameless path. Kept as plain string work so
+/// the repository stays platform-agnostic (no `dart:io`, usable on web).
+String _folderDisplayName(String path) {
+  var normalized = path.replaceAll('\\', '/');
+  while (normalized.length > 1 && normalized.endsWith('/')) {
+    normalized = normalized.substring(0, normalized.length - 1);
+  }
+  final name = normalized.split('/').last;
+  return name.isEmpty ? 'Engram' : name;
 }
 
 /// The result of a discovery pass.

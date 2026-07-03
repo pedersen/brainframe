@@ -16,6 +16,13 @@ void main() {
     expect(() => openFileSystemEngram(loc), throwsUnsupportedError);
   });
 
+  test('openOrCreateFileSystemEngram is unsupported on the web stub', () {
+    expect(
+      () => openOrCreateFileSystemEngram(loc, displayName: 'x'),
+      throwsUnsupportedError,
+    );
+  });
+
   test('applicationEngramContainerPath is unsupported on the web stub', () {
     expect(() => applicationEngramContainerPath(), throwsUnsupportedError);
   });
