@@ -5,13 +5,15 @@ import 'package:brainframe/engram/engram_repository.dart';
 import 'package:brainframe/engram/fs/fs_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late Directory tempRoot;
   late String containerPath;
-  late SharedPreferences prefs;
+  late SharedPreferencesAsync prefs;
 
   EngramRepository repoWith({Future<String> Function()? container}) =>
       EngramRepository(
@@ -23,8 +25,9 @@ void main() {
     tempRoot = await Directory.systemTemp.createTemp('engram_repo_test');
     containerPath = '${tempRoot.path}/container';
     await Directory(containerPath).create(recursive: true);
-    SharedPreferences.setMockInitialValues({});
-    prefs = await SharedPreferences.getInstance();
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    prefs = SharedPreferencesAsync();
   });
 
   tearDown(() async {
@@ -156,10 +159,11 @@ void main() {
     });
 
     test('a corrupt registry line is skipped, not fatal', () async {
-      SharedPreferences.setMockInitialValues({
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.withData({
         'engram.registry.v1': ['{ not json', '{"id":"x"}'],
       });
-      prefs = await SharedPreferences.getInstance();
+      prefs = SharedPreferencesAsync();
       final discovery = await repoWith().discover();
       expect(
         discovery.available.map((e) => e.id),

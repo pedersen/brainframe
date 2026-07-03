@@ -29,8 +29,8 @@ Future<void> initWindowManager() async {
   if (!_isDesktop) return;
 
   await windowManager.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-  final saved = _readSaved(prefs);
+  final prefs = SharedPreferencesAsync();
+  final saved = await _readSaved(prefs);
 
   final options = WindowOptions(
     size: saved?.size ?? _defaultSize,
@@ -66,7 +66,7 @@ Future<void> initWindowManager() async {
 class _WindowStatePersister extends WindowListener {
   _WindowStatePersister(this._prefs);
 
-  final SharedPreferences _prefs;
+  final SharedPreferencesAsync _prefs;
   Timer? _debounce;
 
   void _scheduleSave() {
@@ -80,7 +80,7 @@ class _WindowStatePersister extends WindowListener {
     if (isMaximized) {
       // Keep the previously stored "normal" geometry so that un-maximizing on
       // next launch restores a sensible size rather than the full-screen one.
-      final previous = _readSaved(_prefs);
+      final previous = await _readSaved(_prefs);
       await _write(
         position: previous?.position,
         size: previous?.size ?? _defaultSize,
@@ -158,8 +158,8 @@ class _SavedWindowState {
   final bool isMaximized;
 }
 
-_SavedWindowState? _readSaved(SharedPreferences prefs) {
-  final raw = prefs.getString(_prefsKey);
+Future<_SavedWindowState?> _readSaved(SharedPreferencesAsync prefs) async {
+  final raw = await prefs.getString(_prefsKey);
   if (raw == null) return null;
   try {
     final map = jsonDecode(raw) as Map<String, dynamic>;
