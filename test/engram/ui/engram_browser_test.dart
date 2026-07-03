@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:brainframe/engram/built_in_engrams.dart';
 import 'package:brainframe/engram/engram.dart';
 import 'package:brainframe/engram/engram_repository.dart';
 import 'package:brainframe/engram/engram_scope.dart';
+import 'package:brainframe/engram/engram_store.dart';
 import 'package:brainframe/engram/ui/engram_browser.dart';
 import 'package:brainframe/theme/app_settings.dart';
 import 'package:brainframe/theme/design_language.dart';
@@ -36,15 +39,18 @@ void main() {
   });
 
   // Force the Material design language so the scaffold is deterministic.
-  Widget harness(EngramRepository repository) => AppSettings(
+  Widget harnessFor(EngramRepository repository, Engram engram) => AppSettings(
         designOverride: DesignLanguage.material,
         child: MaterialApp(
           home: EngramScope(
-            initialEngram: tutorial(),
+            initialEngram: engram,
             child: EngramBrowser(repository: repository),
           ),
         ),
       );
+
+  Widget harness(EngramRepository repository) =>
+      harnessFor(repository, tutorial());
 
   void setWidth(WidgetTester tester, double width) {
     tester.view.physicalSize = Size(width, 800);
@@ -102,4 +108,40 @@ void main() {
 
     expect(find.text('notes/first-note.md'), findsOneWidget); // breadcrumb
   });
+
+  testWidgets('hides dotfiles and dot-directories from the tree',
+      (tester) async {
+    setWidth(tester, 1000);
+    final engram = Engram(
+      id: 'dotty',
+      displayName: 'Dotty',
+      readOnly: false,
+      store: _DotStore(),
+    );
+    await tester.pumpWidget(harnessFor(repo(), engram));
+    await tester.pumpAndSettle();
+
+    expect(find.text('welcome.md'), findsWidgets); // visible file
+    expect(find.text('notes'), findsOneWidget); // visible folder
+    expect(find.text('.hidden.md'), findsNothing);
+    expect(find.text('.git'), findsNothing);
+  });
+}
+
+/// A store with a mix of visible and hidden entries.
+class _DotStore extends EngramStore {
+  @override
+  Future<List<String>> list() async => [
+        'welcome.md',
+        '.hidden.md',
+        '.git/config',
+        'notes/first.md',
+      ];
+
+  @override
+  Future<Uint8List> readBytes(String path) async =>
+      Uint8List.fromList(utf8.encode('# $path'));
+
+  @override
+  Future<void> writeBytes(String path, Uint8List bytes) async {}
 }

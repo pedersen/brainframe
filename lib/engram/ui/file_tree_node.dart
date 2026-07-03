@@ -36,6 +36,13 @@ List<FileTreeNode> buildFileTree(Iterable<String> paths) => _buildLevel(
       '',
     );
 
+/// Whether [path] should be hidden from the file browser: true when any of its
+/// segments begins with a dot — a dotfile (`.DS_Store`), or anything inside a
+/// dot-directory (`.git/config`, the app's own `.brainframe/…`). Matches the
+/// usual hidden-file convention.
+bool isHiddenEngramPath(String path) =>
+    path.split('/').any((segment) => segment.startsWith('.'));
+
 List<FileTreeNode> _buildLevel(List<List<String>> segmentLists, String prefix) {
   final folderSegments = <String, List<List<String>>>{};
   final fileNames = <String>{};

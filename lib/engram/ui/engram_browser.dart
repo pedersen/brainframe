@@ -49,7 +49,13 @@ class _EngramBrowserState extends State<EngramBrowser> {
       future: engram.store.list(),
       builder: (context, snapshot) {
         final loading = !snapshot.hasData && !snapshot.hasError;
-        final paths = snapshot.data ?? const <String>[];
+        // Hide dotfiles and dot-directories (.git, .obsidian, the .brainframe
+        // marker) from the browser, so the tree, the default selection, and
+        // link resolution all see the same visible set.
+        final paths = [
+          for (final path in snapshot.data ?? const <String>[])
+            if (!isHiddenEngramPath(path)) path,
+        ];
         final selected = _effectiveSelection(paths);
         final title = selected != null ? _fileName(selected) : engram.displayName;
 
