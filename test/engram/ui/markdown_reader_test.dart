@@ -70,6 +70,18 @@ void main() {
     );
   });
 
+  testWidgets('content is top-aligned within a tall pane, not centered',
+      (tester) async {
+    await tester.pumpWidget(_host(
+      MarkdownReader(store: _MapStore({'a.md': '# Short doc'}), path: 'a.md'),
+    ));
+    await tester.pumpAndSettle();
+
+    // The breadcrumb sits near the top of the ~600px pane, not centered (~270).
+    final y = tester.getTopLeft(find.text('a.md')).dy;
+    expect(y, lessThan(120), reason: 'breadcrumb should be near the top');
+  });
+
   testWidgets('shows a message when the file cannot be read', (tester) async {
     await tester.pumpWidget(_host(
       MarkdownReader(store: _MapStore(const {}), path: 'missing.md'),
