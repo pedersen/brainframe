@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'engram/engram_repository.dart';
 import 'engram/engram_startup_gate.dart';
-import 'home_page.dart';
+import 'engram/ui/engram_browser.dart';
 import 'theme/app_settings.dart';
 import 'theme/app_theme.dart';
 
@@ -42,7 +42,7 @@ class BrainFrameApp extends StatelessWidget {
           home: EngramStartupGate(
             resolveInitialEngram: repository.openInitialEngram,
             onSwitched: (engram) => repository.setLastOpened(engram.id),
-            child: const HomePage(),
+            child: const EngramBrowser(),
           ),
         ),
       ),
