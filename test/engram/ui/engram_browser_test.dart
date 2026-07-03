@@ -109,6 +109,28 @@ void main() {
     expect(find.text('notes/first-note.md'), findsOneWidget); // breadcrumb
   });
 
+  testWidgets('wide layout renders the reader content top-aligned',
+      (tester) async {
+    // A tall window makes vertical centering obvious if it regresses.
+    tester.view.physicalSize = const Size(1200, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(harness(repo()));
+    await tester.pumpAndSettle();
+
+    // The breadcrumb lives inside the reader's scroll view (the app-bar title
+    // is the other "welcome.md"). It should sit near the top, not centered.
+    final breadcrumb = find.descendant(
+      of: find.byType(SingleChildScrollView),
+      matching: find.text('welcome.md'),
+    );
+    expect(breadcrumb, findsOneWidget);
+    expect(tester.getTopLeft(breadcrumb).dy, lessThan(200),
+        reason: 'reader content should be top-aligned, not vertically centered');
+  });
+
   testWidgets('hides dotfiles and dot-directories from the tree',
       (tester) async {
     setWidth(tester, 1000);

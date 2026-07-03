@@ -112,6 +112,11 @@ class _EngramBrowserState extends State<EngramBrowser> {
     if (!isNarrow) {
       final wide = MediaQuery.sizeOf(context).width >= 1080;
       return Row(
+        // Stretch so the reader fills the full pane height. Without it, Row's
+        // default center alignment gives loose vertical constraints, the
+        // reader's scroll view shrink-wraps to its content, and the Row then
+        // centers that short block vertically.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(width: wide ? 260 : 210, child: sidebar),
           const VerticalDivider(width: 1),
