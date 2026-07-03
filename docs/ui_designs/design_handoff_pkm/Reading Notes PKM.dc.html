@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</helmet>
+<div style="{{ pageStyle }}">
+
+  <div style="width:1440px;max-width:100%;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:34px;">
+    <div>
+      <div style="font-size:12px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#a39f96;font-family:{{ mono }};margin-bottom:9px;">Personal Knowledge Management</div>
+      <h1 style="margin:0;font-size:32px;font-weight:600;letter-spacing:-0.02em;color:#2c2a26;">Reading Notes — responsive vault</h1>
+      <p style="margin:8px 0 0 0;font-size:14.5px;color:#7b776e;max-width:560px;line-height:1.5;">One reactive layout, three breakpoints. A live-preview Markdown editor with file tree, wikilinks, tags and backlinks — adapting from desktop down to phone.</p>
+    </div>
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a39f96;margin-bottom:7px;">Theme</div>
+        <div style="display:inline-flex;background:#fff;border:1px solid #e2dfd7;border-radius:11px;padding:3px;gap:3px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+          <div onClick="{{ setDark }}" style="{{ themeDarkBtn }}">Dark</div>
+          <div onClick="{{ setLight }}" style="{{ themeLightBtn }}">Light</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a39f96;margin-bottom:7px;">Layout</div>
+        <div style="display:inline-flex;background:#fff;border:1px solid #e2dfd7;border-radius:11px;padding:3px;gap:3px;box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+          <div onClick="{{ setClassic }}" style="{{ varClassicBtn }}">Classic</div>
+          <div onClick="{{ setColumns }}" style="{{ varColumnsBtn }}">Columns</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+    <span style="font-family:{{ mono }};font-size:12px;font-weight:500;color:#86827a;">DESKTOP</span>
+    <span style="font-family:{{ mono }};font-size:11px;color:#b3afa6;">1440 × 860</span>
+    <span style="flex:1;height:1px;background:#dcd9d1;"></span>
+  </div>
+  <div style="{{ frameStyle }}">
+    <dc-import name="ReadingNotesApp" device="desktop" theme="{{ theme }}" variation="{{ variation }}" hint-size="1440px,860px" style="width:1440px;height:860px;"></dc-import>
+  </div>
+
+  <div style="display:flex;gap:40px;flex-wrap:wrap;margin-top:46px;align-items:flex-start;">
+    <div>
+      <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;width:834px;max-width:100%;">
+        <span style="font-family:{{ mono }};font-size:12px;font-weight:500;color:#86827a;">TABLET</span>
+        <span style="font-family:{{ mono }};font-size:11px;color:#b3afa6;">834 × 1040</span>
+        <span style="flex:1;height:1px;background:#dcd9d1;"></span>
+      </div>
+      <div style="{{ frameStyle }}">
+        <dc-import name="ReadingNotesApp" device="tablet" theme="{{ theme }}" variation="{{ variation }}" hint-size="834px,1040px" style="width:834px;height:1040px;"></dc-import>
+      </div>
+    </div>
+    <div>
+      <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;width:390px;max-width:100%;">
+        <span style="font-family:{{ mono }};font-size:12px;font-weight:500;color:#86827a;">PHONE</span>
+        <span style="font-family:{{ mono }};font-size:11px;color:#b3afa6;">390 × 844</span>
+        <span style="flex:1;height:1px;background:#dcd9d1;"></span>
+      </div>
+      <div style="{{ phoneFrameStyle }}">
+        <dc-import name="ReadingNotesApp" device="phone" theme="{{ theme }}" variation="{{ variation }}" hint-size="390px,844px" style="width:390px;height:844px;"></dc-import>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme:'dark', variation:'classic' };
+
+  renderVals(){
+    const mono = '"JetBrains Mono", ui-monospace, monospace';
+    const ui = '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
+    const ACC = '#6a59cf';
+    const seg = (active) => ({
+      padding:'6px 16px', borderRadius:'8px', fontSize:'13px', fontWeight:500, cursor:'pointer',
+      userSelect:'none', transition:'all .15s ease',
+      background: active ? ACC : 'transparent',
+      color: active ? '#fff' : '#7b776e',
+      boxShadow: active ? '0 1px 3px rgba(106,89,207,0.35)' : 'none'
+    });
+    const t = this.state.theme, v = this.state.variation;
+    return {
+      mono, theme:t, variation:v,
+      pageStyle: { minHeight:'100vh', boxSizing:'border-box', padding:'44px 48px 72px', background:'#e9e7e2', fontFamily:ui, color:'#2c2a26' },
+      frameStyle: { display:'inline-block', borderRadius:'16px', overflow:'hidden', border:'1px solid rgba(0,0,0,0.10)', boxShadow:'0 24px 60px -18px rgba(40,36,55,0.30), 0 4px 12px rgba(40,36,55,0.10)', background:'#1b1b1f', lineHeight:0 },
+      phoneFrameStyle: { display:'inline-block', borderRadius:'30px', overflow:'hidden', border:'1px solid rgba(0,0,0,0.10)', boxShadow:'0 24px 60px -18px rgba(40,36,55,0.30), 0 4px 12px rgba(40,36,55,0.10)', background:'#1b1b1f', lineHeight:0 },
+      themeDarkBtn: seg(t==='dark'),
+      themeLightBtn: seg(t==='light'),
+      varClassicBtn: seg(v==='classic'),
+      varColumnsBtn: seg(v==='columns'),
+      setDark: () => this.setState({ theme:'dark' }),
+      setLight: () => this.setState({ theme:'light' }),
+      setClassic: () => this.setState({ variation:'classic' }),
+      setColumns: () => this.setState({ variation:'columns' })
+    };
+  }
+}
+</script>
+</body>
+</html>
