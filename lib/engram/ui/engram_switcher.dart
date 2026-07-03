@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../desktop_folder_adoption.dart';
@@ -12,15 +13,23 @@ import '../engram_scope.dart';
 /// the app-level actions `New engram` and — on desktop — `Open folder…`. It
 /// captures the [EngramScope] before opening the sheet, because the sheet is
 /// pushed above the app content and no longer has the scope as an ancestor.
+///
+/// On web there is no user-engram filesystem (the store throws), so `New engram`
+/// is hidden and only the built-in tutorial and help are switchable.
 class EngramSwitcher extends StatelessWidget {
   const EngramSwitcher({
     super.key,
     required this.repository,
     required this.current,
+    this.allowCreateEngram = !kIsWeb,
   });
 
   final EngramRepository repository;
   final Engram current;
+
+  /// Whether creating a new engram is offered. False on web, where the
+  /// filesystem store is unsupported. Injectable so both branches are testable.
+  final bool allowCreateEngram;
 
   @override
   Widget build(BuildContext context) {
@@ -79,10 +88,12 @@ class EngramSwitcher extends StatelessWidget {
           Navigator.of(sheetContext).pop();
           scope.switchTo(engram);
         },
-        onNewEngram: () async {
-          Navigator.of(sheetContext).pop();
-          await _createEngram(context, scope);
-        },
+        onNewEngram: allowCreateEngram
+            ? () async {
+                Navigator.of(sheetContext).pop();
+                await _createEngram(context, scope);
+              }
+            : null,
         onOpenFolder: isDesktopFolderAdoptionSupported
             ? () async {
                 Navigator.of(sheetContext).pop();
@@ -117,7 +128,7 @@ class _SwitcherSheet extends StatelessWidget {
   final EngramDiscovery discovery;
   final String currentId;
   final void Function(Engram engram) onSelect;
-  final VoidCallback onNewEngram;
+  final VoidCallback? onNewEngram;
   final VoidCallback? onOpenFolder;
 
   @override
@@ -147,12 +158,13 @@ class _SwitcherSheet extends StatelessWidget {
               title: Text(unavailable.displayName),
               subtitle: const Text('Unavailable — reconnect coming soon'),
             ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.add),
-            title: const Text('New engram'),
-            onTap: onNewEngram,
-          ),
+          if (onNewEngram != null || onOpenFolder != null) const Divider(),
+          if (onNewEngram != null)
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('New engram'),
+              onTap: onNewEngram,
+            ),
           if (onOpenFolder != null)
             ListTile(
               leading: const Icon(Icons.folder_open_outlined),
