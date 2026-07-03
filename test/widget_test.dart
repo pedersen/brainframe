@@ -21,24 +21,36 @@ void main() {
         ),
       );
 
-  testWidgets('App builds and shows the home screen', (tester) async {
+  testWidgets('opens into the tutorial engram browser on first run',
+      (tester) async {
     await tester.pumpWidget(app());
-    await tester.pumpAndSettle(); // resolve the startup engram, then render home
+    await tester.pumpAndSettle(); // resolve the startup engram + list its files
 
-    // Title (in the app bar/nav bar) and the headline both read "BrainFrame".
-    expect(find.text('BrainFrame'), findsWidgets);
-    expect(find.text('Your second brain and e-reader.'), findsOneWidget);
-    expect(find.text('Get started'), findsOneWidget);
+    // The sidebar footer names the active engram; the tutorial's files show.
+    expect(find.text('Tutorial'), findsOneWidget);
+    expect(find.text('notes'), findsOneWidget); // the notes/ folder
+    // "welcome.md" appears as the app-bar title, a tree row, and the breadcrumb.
+    expect(find.text('welcome.md'), findsWidgets);
+
+    // The reader renders welcome.md's content (rich text from Markdown).
+    expect(
+      find.textContaining('Welcome to BrainFrame', findRichText: true),
+      findsWidgets,
+    );
   });
 
-  testWidgets('Get started opens the welcome dialog', (tester) async {
+  testWidgets('selecting a file opens it in the reader', (tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Get started'));
+    // The notes/ folder is expanded by default, so its file is visible.
+    await tester.tap(find.text('first-note.md'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome'), findsOneWidget);
-    expect(find.text('BrainFrame is up and running.'), findsOneWidget);
+    expect(find.text('notes/first-note.md'), findsOneWidget); // breadcrumb
+    expect(
+      find.textContaining('Taking notes', findRichText: true),
+      findsWidgets,
+    );
   });
 }

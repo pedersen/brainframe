@@ -17,7 +17,7 @@
 /// hair.
 library;
 
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart' as file_selector;
 import 'package:flutter/foundation.dart';
 
 import 'engram.dart';
@@ -63,6 +63,10 @@ Future<Engram?> pickAndAdoptFolder(
 
 /// The real native directory dialog. Isolated so it is the sole line the unit
 /// tests cannot exercise (it needs a platform channel).
-Future<String?> _pickDirectoryPath() => FilePicker.getDirectoryPath(
-      dialogTitle: 'Choose a folder for your engram',
+///
+/// Uses `file_selector` (the maintained, built-in-Kotlin plugin) rather than
+/// `file_picker`, whose legacy Kotlin-Gradle-Plugin apply broke the Android
+/// build even though the picker itself is desktop-only.
+Future<String?> _pickDirectoryPath() => file_selector.getDirectoryPath(
+      confirmButtonText: 'Choose folder',
     );

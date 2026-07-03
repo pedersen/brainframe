@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+@keyframes pkmCaret { 0%,48%{opacity:1} 49%,100%{opacity:0} }
+.pkm-scroll::-webkit-scrollbar{width:11px;height:11px}
+.pkm-scroll::-webkit-scrollbar-thumb{background:rgba(135,135,145,0.30);border-radius:7px;border:3px solid transparent;background-clip:content-box}
+.pkm-scroll::-webkit-scrollbar-thumb:hover{background:rgba(135,135,145,0.5);background-clip:content-box}
+.pkm-scroll::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+<div style="{{ rootStyle }}" ref="{{ setRoot }}">
+
+  <div style="{{ topbarStyle }}">
+    <sc-if value="{{ isPhone }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ toggleSidebar }}" style="width:34px;height:34px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:8px;cursor:pointer;flex-shrink:0;color:{{ c.muted }};" style-hover="{{ rowHover }}">
+        <span style="width:17px;height:1.6px;background:currentColor;border-radius:2px;"></span>
+        <span style="width:17px;height:1.6px;background:currentColor;border-radius:2px;"></span>
+        <span style="width:17px;height:1.6px;background:currentColor;border-radius:2px;"></span>
+      </div>
+      <div style="flex:1;min-width:0;text-align:center;font-size:15px;font-weight:600;color:{{ c.text }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">The Beginning of Infinity</div>
+      <div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;flex-shrink:0;color:{{ c.muted }};" style-hover="{{ rowHover }}">
+        <svg width="16" height="16" viewBox="0 0 14 14"><circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" stroke-width="1.4"></circle><line x1="9.2" y1="9.2" x2="12.6" y2="12.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></line></svg>
+      </div>
+    </sc-if>
+    <sc-if value="{{ notPhone }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:center;gap:3px;flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;max-width:230px;padding:6px 11px;border-radius:8px;background:{{ c.editorBg }};color:{{ c.text }};font-size:13px;border:1px solid {{ c.borderSoft }};">
+          <svg width="11" height="11" viewBox="0 0 12 12" style="flex-shrink:0;opacity:.6;"><rect x="2.5" y="1.5" width="7" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"></rect></svg>
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">The Beginning of Infinity</span>
+          <span style="color:{{ c.faint }};font-size:14px;line-height:1;flex-shrink:0;">×</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;max-width:170px;padding:6px 11px;border-radius:8px;color:{{ c.muted }};font-size:13px;" style-hover="{{ rowHover }}">
+          <svg width="11" height="11" viewBox="0 0 12 12" style="flex-shrink:0;opacity:.5;"><rect x="2.5" y="1.5" width="7" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"></rect></svg>
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Reading Log 2026</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:2px;">
+        <div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;cursor:pointer;color:{{ c.muted }};" style-hover="{{ rowHover }}">
+          <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" stroke-width="1.4"></circle><line x1="9.2" y1="9.2" x2="12.6" y2="12.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></line></svg>
+        </div>
+        <div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;cursor:pointer;color:{{ c.muted }};font-size:17px;letter-spacing:1px;" style-hover="{{ rowHover }}">⋯</div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="{{ bodyStyle }}">
+
+    <div style="{{ sidebarStyle }}">
+      <div style="display:flex;align-items:center;gap:8px;padding:11px 12px 8px 14px;flex-shrink:0;">
+        <div style="flex:1;font-size:11.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:{{ c.muted }};">Reading Vault</div>
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;color:{{ c.muted }};" style-hover="{{ rowHover }}">
+          <svg width="13" height="13" viewBox="0 0 14 14"><line x1="7" y1="2.5" x2="7" y2="11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line><line x1="2.5" y1="7" x2="11.5" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line></svg>
+        </div>
+      </div>
+      <div style="padding:0 12px 10px 12px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:7px;height:30px;padding:0 9px;border-radius:7px;background:{{ c.appBg }};border:1px solid {{ c.borderSoft }};color:{{ c.faint }};font-size:12.5px;white-space:nowrap;">
+          <svg width="12" height="12" viewBox="0 0 14 14" style="opacity:.7;"><circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" stroke-width="1.4"></circle><line x1="9.2" y1="9.2" x2="12.6" y2="12.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></line></svg>
+          <span>Search notes…</span>
+        </div>
+      </div>
+      <div class="pkm-scroll" style="flex:1;overflow-x:hidden;overflow-y:auto;min-height:0;padding:0 8px 16px 8px;font-size:13px;white-space:nowrap;">
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 6px 4px 8px;border-radius:6px;cursor:pointer;color:{{ c.text }};font-weight:600;" style-hover="{{ rowHover }}">
+          <span style="width:12px;font-size:9px;color:{{ c.faint }};">▾</span><span>Reading Notes</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 6px 4px 22px;border-radius:6px;cursor:pointer;color:{{ c.muted }};font-weight:500;" style-hover="{{ rowHover }}">
+          <span style="width:12px;font-size:9px;color:{{ c.faint }};">▾</span><span>Books</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 6px 4px 38px;border-radius:6px;cursor:pointer;color:{{ c.text }};font-weight:500;background:{{ c.selBg }};box-shadow:inset 2px 0 0 {{ c.accent }};">
+          <svg width="12" height="12" viewBox="0 0 12 12" style="flex-shrink:0;color:{{ c.accent }};"><rect x="2.5" y="1.5" width="7" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.1"></rect></svg><span>The Beginning of Infinity</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 6px 4px 38px;border-radius:6px;cursor:pointer;color:{{ c.muted }};" style-hover="{{ rowHover }}">
+          <svg width="12" height="12" viewBox="0 0 12 12" style="flex-shrink:0;opacity:.55;"><rect x="2.5" y="1.5" width="7" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"></rect></svg><span>Thinking, Fast and Slow</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 6px 4px 38px;border-radius:6px;cursor:pointer;color:{{ c.muted }};" style-hover="{{ rowHover }}">
+          <svg width="12" height="12" viewBox="0 0 12 12" style="flex-shrink:0;opacity:.55;"><rect x="2.5" y="1.5" width="7" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"></rect></svg><span>Same as Ever</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 6px 4px 38px;border-radius:6px;cursor:pointer;color:{{ c.muted }};" style-hover="{{ rowHover }}">
+          <svg width="12" height="12" viewBox="0 0 12 12" style="flex-shrink:0;opacity:.55;"><rect x="2.5" y="1.5" width="7" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"></rect></svg><span>Annihilation</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 6px 4px 22px;border-radius:6px;cursor:pointer;color:{{ c.muted }};font-weight:500;" style-hover="{{ rowHover }}">
+          <span style="width:12px;font-size:9px;color:{{ c.faint }};">▸</span><span>Articles</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 6px 4px 22px;border-radius:6px;cursor:pointer;color:{{ c.muted }};" style-hover="{{ rowHover }}">
+          <svg width="12" height="12" viewBox="0 0 12 12" style="flex-shrink:0;opacity:.55;"><rect x="2.5" y="1.5" width="7" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"></rect></svg><span>Map of Content</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 6px 4px 22px;border-radius:6px;cursor:pointer;color:{{ c.muted }};" style-hover="{{ rowHover }}">
+          <svg width="12" height="12" viewBox="0 0 12 12" style="flex-shrink:0;opacity:.55;"><rect x="2.5" y="1.5" width="7" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"></rect></svg><span>Reading Log 2026</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 6px 4px 8px;border-radius:6px;cursor:pointer;color:{{ c.muted }};font-weight:600;margin-top:2px;" style-hover="{{ rowHover }}">
+          <span style="width:12px;font-size:9px;color:{{ c.faint }};">▸</span><span>Daily Notes</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 6px 4px 8px;border-radius:6px;cursor:pointer;color:{{ c.muted }};font-weight:600;" style-hover="{{ rowHover }}">
+          <span style="width:12px;font-size:9px;color:{{ c.faint }};">▸</span><span>Templates</span>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ isPhone }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ scrimStyle }}" onClick="{{ toggleSidebar }}"></div>
+    </sc-if>
+
+    <sc-if value="{{ showList }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ listStyle }}">
+        <div style="padding:13px 16px 11px 16px;border-bottom:1px solid {{ c.borderSoft }};display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <span style="font-size:13.5px;font-weight:700;color:{{ c.text }};">Books</span>
+          <span style="font-size:12px;color:{{ c.faint }};">6 notes</span>
+          <span style="margin-left:auto;font-size:11.5px;color:{{ c.muted }};">Recent ▾</span>
+        </div>
+        <div class="pkm-scroll" style="flex:1;overflow-y:auto;min-height:0;">
+          <div style="padding:11px 16px;border-bottom:1px solid {{ c.borderSoft }};cursor:pointer;display:flex;flex-direction:column;gap:4px;background:{{ c.selBg }};box-shadow:inset 2px 0 0 {{ c.accent }};">
+            <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:13.5px;font-weight:600;color:{{ c.text }};flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">The Beginning of Infinity</span><span style="font-size:11px;color:{{ c.faint }};">Apr 12</span></div>
+            <div style="font-size:12.5px;color:{{ c.muted }};line-height:1.45;">Good explanations are hard to vary — the real engine of unbounded progress…</div>
+            <div style="display:flex;gap:5px;margin-top:2px;"><span style="font-family:{{ mono }};font-size:10.5px;color:{{ c.tagText }};">#epistemology</span><span style="font-family:{{ mono }};font-size:10.5px;color:{{ c.tagText }};">#physics</span></div>
+          </div>
+          <div style="padding:11px 16px;border-bottom:1px solid {{ c.borderSoft }};cursor:pointer;display:flex;flex-direction:column;gap:4px;" style-hover="{{ rowHover }}">
+            <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:13.5px;font-weight:600;color:{{ c.text }};flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Thinking, Fast and Slow</span><span style="font-size:11px;color:{{ c.faint }};">Mar 30</span></div>
+            <div style="font-size:12.5px;color:{{ c.muted }};line-height:1.45;">Two systems: the fast, intuitive one and the slow, deliberate one…</div>
+          </div>
+          <div style="padding:11px 16px;border-bottom:1px solid {{ c.borderSoft }};cursor:pointer;display:flex;flex-direction:column;gap:4px;" style-hover="{{ rowHover }}">
+            <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:13.5px;font-weight:600;color:{{ c.text }};flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Same as Ever</span><span style="font-size:11px;color:{{ c.faint }};">Mar 18</span></div>
+            <div style="font-size:12.5px;color:{{ c.muted }};line-height:1.45;">What never changes is more useful than predicting what will…</div>
+          </div>
+          <div style="padding:11px 16px;border-bottom:1px solid {{ c.borderSoft }};cursor:pointer;display:flex;flex-direction:column;gap:4px;" style-hover="{{ rowHover }}">
+            <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:13.5px;font-weight:600;color:{{ c.text }};flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Annihilation</span><span style="font-size:11px;color:{{ c.faint }};">Feb 27</span></div>
+            <div style="font-size:12.5px;color:{{ c.muted }};line-height:1.45;">Area X resists explanation; the unknowable as a character…</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="{{ editorWrapStyle }}">
+      <div class="pkm-scroll" style="{{ scrollStyle }}">
+        <div style="{{ noteStyle }}">
+
+          <div style="font-family:{{ mono }};font-size:12px;color:{{ c.faint }};letter-spacing:.01em;margin-bottom:18px;">books / the-beginning-of-infinity.md</div>
+
+          <h1 style="margin:0 0 8px 0;font-family:{{ serif }};font-weight:600;font-size:{{ h1Size }}px;line-height:1.12;letter-spacing:-0.012em;color:{{ c.text }};">The Beginning of Infinity</h1>
+
+          <div style="font-family:{{ ui }};font-size:14px;color:{{ c.muted }};display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:15px;white-space:nowrap;">
+            <span>David Deutsch</span><span style="color:{{ c.faint }};">·</span>
+            <span style="letter-spacing:1px;color:{{ c.accentText }};">★★★★☆</span><span style="color:{{ c.faint }};">·</span>
+            <span style="background:{{ c.pillBg }};color:{{ c.tagText }};padding:2px 10px;border-radius:20px;font-size:12px;font-weight:500;">Finished</span>
+          </div>
+
+          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:24px;">
+            <span style="font-family:{{ mono }};font-size:12px;background:{{ c.tagBg }};color:{{ c.tagText }};padding:2px 9px;border-radius:20px;">#reading</span>
+            <span style="font-family:{{ mono }};font-size:12px;background:{{ c.tagBg }};color:{{ c.tagText }};padding:2px 9px;border-radius:20px;">#epistemology</span>
+            <span style="font-family:{{ mono }};font-size:12px;background:{{ c.tagBg }};color:{{ c.tagText }};padding:2px 9px;border-radius:20px;">#physics</span>
+            <span style="font-family:{{ mono }};font-size:12px;background:{{ c.tagBg }};color:{{ c.tagText }};padding:2px 9px;border-radius:20px;">#explanation</span>
+          </div>
+
+          <blockquote style="margin:0 0 26px 0;padding:13px 20px;background:{{ c.highlight }};border-left:3px solid {{ c.highlightBorder }};border-radius:0 9px 9px 0;font-style:italic;font-size:{{ quoteFont }}px;line-height:1.55;color:{{ c.text }};">
+            The growth of knowledge consists of correcting misconceptions in our theories.
+            <span style="display:block;font-style:normal;font-family:{{ ui }};font-size:12.5px;color:{{ c.muted }};margin-top:8px;">— Ch. 1, The Reach of Explanations</span>
+          </blockquote>
+
+          <h2 style="margin:30px 0 10px 0;font-family:{{ serif }};font-weight:600;font-size:{{ h2Size }}px;color:{{ c.text }};"><span style="font-family:{{ mono }};color:{{ c.faint }};font-size:0.74em;font-weight:400;">## </span>Core thesis</h2>
+          <p style="margin:0 0 16px 0;font-size:{{ bodyFont }}px;line-height:1.78;color:{{ c.text }};">Good explanations — the ones that are <strong style="font-weight:600;">hard to vary</strong> while still accounting for what they claim — are the real engine of progress. Deutsch argues that knowledge growth is <em>unbounded</em>: every advance links outward to <span style="color:{{ c.accent }};border-bottom:1px solid {{ c.accentUnderline }};cursor:pointer;">Explanatory knowledge</span> and reaches far beyond the problem that prompted it.</p>
+
+          <h2 style="margin:30px 0 10px 0;font-family:{{ serif }};font-weight:600;font-size:{{ h2Size }}px;color:{{ c.text }};"><span style="font-family:{{ mono }};color:{{ c.faint }};font-size:0.74em;font-weight:400;">## </span>Highlights</h2>
+          <ul style="margin:0 0 16px 0;padding-left:22px;font-size:{{ bodyFont }}px;line-height:1.7;color:{{ c.text }};">
+            <li style="margin-bottom:9px;">Knowledge is information with causal power — it tends to keep itself instantiated.</li>
+            <li style="margin-bottom:9px;">Problems are <span style="background:{{ c.highlight }};padding:0 4px;border-radius:3px;">inevitable</span>, but problems are soluble.</li>
+            <li style="margin-bottom:9px;">Optimism is the theory that all failures are caused by insufficient knowledge.</li>
+          </ul>
+
+          <h2 style="margin:30px 0 10px 0;font-family:{{ serif }};font-weight:600;font-size:{{ h2Size }}px;color:{{ c.text }};"><span style="font-family:{{ mono }};color:{{ c.faint }};font-size:0.74em;font-weight:400;">## </span>Open questions</h2>
+          <div style="display:flex;align-items:flex-start;gap:11px;margin-bottom:11px;font-size:{{ bodyFont }}px;line-height:1.5;color:{{ c.muted }};">
+            <span style="width:18px;height:18px;flex-shrink:0;border-radius:5px;background:{{ c.accent }};display:flex;align-items:center;justify-content:center;margin-top:3px;"><svg width="11" height="11" viewBox="0 0 12 12"><polyline points="2.5,6.5 5,9 9.5,3.2" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></polyline></svg></span>
+            <span>Reconcile with <span style="color:{{ c.accent }};border-bottom:1px solid {{ c.accentUnderline }};cursor:pointer;">Fallibilism</span> notes</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:11px;margin-bottom:11px;font-size:{{ bodyFont }}px;line-height:1.5;color:{{ c.text }};">
+            <span style="width:18px;height:18px;flex-shrink:0;border-radius:5px;border:1.6px solid {{ c.faint }};margin-top:3px;"></span>
+            <span>Compare to <span style="color:{{ c.accent }};border-bottom:1px solid {{ c.accentUnderline }};cursor:pointer;">Popper</span> on conjecture &amp; refutation</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:11px;margin-bottom:11px;font-size:{{ bodyFont }}px;line-height:1.5;color:{{ c.text }};">
+            <span style="width:18px;height:18px;flex-shrink:0;border-radius:5px;border:1.6px solid {{ c.faint }};margin-top:3px;"></span>
+            <span>Add a link inside <span style="color:{{ c.accent }};border-bottom:1px solid {{ c.accentUnderline }};cursor:pointer;">Map of Content</span></span>
+          </div>
+
+          <h2 style="margin:30px 0 10px 0;font-family:{{ serif }};font-weight:600;font-size:{{ h2Size }}px;color:{{ c.text }};"><span style="font-family:{{ mono }};color:{{ c.faint }};font-size:0.74em;font-weight:400;">## </span>Connections</h2>
+          <div style="margin:0 -14px;padding:5px 14px;background:{{ c.selBg }};border-left:2px solid {{ c.accent }};border-radius:3px;">
+            <p style="margin:0;font-size:{{ bodyFont }}px;line-height:1.78;color:{{ c.text }};">Relates to <span style="color:{{ c.faint }};font-family:{{ mono }};">**</span><span style="color:{{ c.faint }};font-family:{{ mono }};">[[</span><span style="color:{{ c.accent }};">Spaceship Earth</span><span style="color:{{ c.faint }};font-family:{{ mono }};">]]</span><span style="color:{{ c.faint }};font-family:{{ mono }};">**</span> — the idea that knowledge, not raw resources, is what makes a place habitable<span style="display:inline-block;width:2px;height:1.05em;background:{{ c.accent }};margin-left:1px;vertical-align:text-bottom;animation:pkmCaret 1.05s steps(1) infinite;"></span></p>
+          </div>
+
+        </div>
+      </div>
+
+      <sc-if value="{{ showStatus }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ statusStyle }}">
+          <span style="font-family:{{ mono }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Reading Notes › Books › The Beginning of Infinity</span>
+          <span style="flex:1;"></span>
+          <span style="white-space:nowrap;">Live preview</span>
+          <span style="white-space:nowrap;">1,204 words</span>
+          <span style="white-space:nowrap;">4 backlinks</span>
+          <span style="display:flex;align-items:center;gap:6px;white-space:nowrap;"><span style="width:7px;height:7px;border-radius:50%;background:{{ c.accent }};"></span>Synced</span>
+        </div>
+      </sc-if>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark'|'light'&quot;},&quot;variation&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;classic&quot;,&quot;columns&quot;],&quot;default&quot;:&quot;classic&quot;,&quot;tsType&quot;:&quot;'classic'|'columns'&quot;},&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;tablet&quot;,&quot;phone&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop'|'tablet'|'phone'&quot;}}">
+const P = {
+  dark: {
+    appBg:'#1b1b1f', sidebarBg:'#161619', editorBg:'#1e1e22', listBg:'#19191d',
+    borderSoft:'#26262c', border:'#2e2e35',
+    text:'#d8d8dc', muted:'#8b8b93', faint:'#5c5c64',
+    accent:'#a394f0', accentText:'#b7abf5', accentUnderline:'rgba(163,148,240,0.4)',
+    selBg:'rgba(163,148,240,0.16)', hover:'rgba(255,255,255,0.05)',
+    tagBg:'rgba(163,148,240,0.13)', tagText:'#b8aef5', pillBg:'rgba(163,148,240,0.16)',
+    highlight:'rgba(238,206,110,0.18)', highlightBorder:'rgba(238,206,110,0.55)',
+    scrim:'rgba(0,0,0,0.5)', shadow:'0 10px 38px rgba(0,0,0,0.5)'
+  },
+  light: {
+    appBg:'#f7f6f3', sidebarBg:'#efeee9', editorBg:'#ffffff', listBg:'#f3f2ed',
+    borderSoft:'#e8e6df', border:'#dddbd3',
+    text:'#37373c', muted:'#79797f', faint:'#a9a8a2',
+    accent:'#6a59cf', accentText:'#5b4bbf', accentUnderline:'rgba(106,89,207,0.35)',
+    selBg:'rgba(106,89,207,0.10)', hover:'rgba(0,0,0,0.04)',
+    tagBg:'rgba(106,89,207,0.10)', tagText:'#5b4bbf', pillBg:'rgba(106,89,207,0.12)',
+    highlight:'rgba(245,206,90,0.42)', highlightBorder:'rgba(214,160,30,0.55)',
+    scrim:'rgba(22,22,28,0.34)', shadow:'0 12px 40px rgba(60,55,90,0.2)'
+  }
+};
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = { device: props.device || 'desktop', sidebarOpen:false };
+    this.setRoot = (el)=>{ if(el) this.rootEl = el; };
+  }
+  measure(){
+    if(!this.rootEl) return;
+    const w = this.rootEl.clientWidth;
+    const d = w >= 1080 ? 'desktop' : w >= 720 ? 'tablet' : 'phone';
+    if(d !== this.state.device){
+      this.setState(s => ({ device:d, sidebarOpen: d==='phone' ? s.sidebarOpen : false }));
+    }
+  }
+  componentDidMount(){
+    this.ro = new ResizeObserver(()=> this.measure());
+    if(this.rootEl) this.ro.observe(this.rootEl);
+    this.measure();
+  }
+  componentWillUnmount(){ if(this.ro) this.ro.disconnect(); }
+  toggleSidebar(){ this.setState(s => ({ sidebarOpen: !s.sidebarOpen })); }
+
+  renderVals(){
+    const theme = this.props.theme === 'light' ? 'light' : 'dark';
+    const dev = this.state.device;
+    const variation = this.props.variation === 'columns' ? 'columns' : 'classic';
+    const isPhone = dev === 'phone', isTablet = dev === 'tablet', isDesktop = dev === 'desktop';
+    const c = P[theme];
+    const ui = '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
+    const serif = '"Newsreader", Georgia, "Times New Roman", serif';
+    const mono = '"JetBrains Mono", ui-monospace, "SFMono-Regular", monospace';
+    const showList = variation === 'columns' && isDesktop;
+    const open = this.state.sidebarOpen;
+    const sidebarW = isTablet ? 212 : 258;
+
+    const rootStyle = { position:'relative', width:'100%', height:'100%', display:'flex', flexDirection:'column', background:c.appBg, color:c.text, fontFamily:ui, overflow:'hidden', transition:'background .22s ease, color .22s ease' };
+    const topbarStyle = { display:'flex', alignItems:'center', gap: isPhone?8:4, height: isPhone?56:44, minHeight: isPhone?56:44, padding: isPhone?'0 10px':'0 8px 0 10px', background:c.appBg, borderBottom:`1px solid ${c.borderSoft}`, position:'relative', zIndex:30, flexShrink:0 };
+    const bodyStyle = { flex:1, display:'flex', minHeight:0, position:'relative', overflow:'hidden' };
+
+    const sidebarBase = { background:c.sidebarBg, display:'flex', flexDirection:'column', minHeight:0 };
+    let sidebarStyle;
+    if(isPhone){
+      sidebarStyle = { ...sidebarBase, position:'absolute', top:0, bottom:0, left:0, width:288, zIndex:60, transform: open?'translateX(0)':'translateX(-104%)', transition:'transform .27s cubic-bezier(.4,0,.2,1)', boxShadow: open?c.shadow:'none', borderRight:`1px solid ${c.border}` };
+    } else {
+      sidebarStyle = { ...sidebarBase, width:sidebarW, minWidth:sidebarW, borderRight:`1px solid ${c.borderSoft}` };
+    }
+    const scrimStyle = { position:'absolute', inset:0, background:c.scrim, zIndex:55, opacity: open?1:0, pointerEvents: open?'auto':'none', transition:'opacity .27s ease' };
+    const listStyle = { width:300, minWidth:300, background:c.listBg, borderRight:`1px solid ${c.borderSoft}`, display:'flex', flexDirection:'column', minHeight:0 };
+    const editorWrapStyle = { flex:1, display:'flex', flexDirection:'column', minWidth:0, background:c.editorBg };
+    const scrollStyle = { flex:1, overflowY:'auto', minHeight:0 };
+    const notePad = isPhone ? '22px 20px 96px' : (isTablet ? '32px 40px 96px' : '46px 64px 120px');
+    const noteStyle = { maxWidth:744, margin:'0 auto', padding:notePad, fontFamily:serif };
+    const statusStyle = { display:'flex', alignItems:'center', gap:16, height:27, minHeight:27, padding:'0 16px', borderTop:`1px solid ${c.borderSoft}`, background:c.appBg, color:c.faint, fontSize:11.5, fontFamily:ui, flexShrink:0 };
+
+    return {
+      c, ui, serif, mono,
+      isPhone, notPhone: !isPhone, showList, showStatus: !isPhone,
+      rootStyle, topbarStyle, bodyStyle, sidebarStyle, scrimStyle, listStyle, editorWrapStyle, scrollStyle, noteStyle, statusStyle,
+      rowHover: { background:c.hover },
+      h1Size: isPhone ? 26 : 31,
+      h2Size: isPhone ? 18 : 20,
+      bodyFont: isPhone ? 15.5 : 16.5,
+      quoteFont: isPhone ? 16.5 : 18,
+      setRoot: this.setRoot,
+      toggleSidebar: () => this.toggleSidebar()
+    };
+  }
+}
+</script>
+</body>
+</html>

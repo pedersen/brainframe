@@ -39,3 +39,9 @@ List<Engram> builtInEngrams({AssetBundle? bundle}) => [
 /// Whether [id] belongs to a built-in engram, which cannot be forgotten.
 bool isBuiltInEngramId(String id) =>
     id == builtinTutorialId || id == builtinHelpId;
+
+/// The bundled help engram on its own — reachable both as the peek overlay and
+/// as a full engram switch (Decision 8). [bundle] is injectable for tests.
+Engram builtInHelpEngram({AssetBundle? bundle}) =>
+    builtInEngrams(bundle: bundle)
+        .firstWhere((engram) => engram.id == builtinHelpId);

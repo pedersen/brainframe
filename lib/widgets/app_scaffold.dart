@@ -17,11 +17,16 @@ class AppScaffold extends StatelessWidget {
     required this.title,
     required this.body,
     this.actions,
+    this.leading,
   });
 
   final String title;
   final Widget body;
   final List<Widget>? actions;
+
+  /// An optional leading control (e.g. a phone menu button). When null, each
+  /// design falls back to its default leading behaviour.
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +38,7 @@ class AppScaffold extends StatelessWidget {
       case DesignLanguage.cupertino:
         return CupertinoPageScaffold(
           navigationBar: CupertinoNavigationBar(
+            leading: leading,
             middle: heading,
             trailing: (actions == null || actions!.isEmpty)
                 ? null
@@ -42,7 +48,7 @@ class AppScaffold extends StatelessWidget {
         );
       case DesignLanguage.material:
         return Scaffold(
-          appBar: AppBar(title: heading, actions: actions),
+          appBar: AppBar(leading: leading, title: heading, actions: actions),
           body: body,
         );
     }
