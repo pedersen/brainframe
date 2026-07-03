@@ -61,7 +61,12 @@ void main() {
 
   tearDown(() => debugDefaultTargetPlatformOverride = null);
 
-  Widget harness(EngramRepository repository, Engram initial) => MaterialApp(
+  Widget harness(
+    EngramRepository repository,
+    Engram initial, {
+    bool allowCreateEngram = true,
+  }) =>
+      MaterialApp(
         home: EngramScope(
           initialEngram: initial,
           child: Scaffold(
@@ -71,7 +76,11 @@ void main() {
                 children: [
                   Text('active:${active.id}'),
                   const Spacer(),
-                  EngramSwitcher(repository: repository, current: active),
+                  EngramSwitcher(
+                    repository: repository,
+                    current: active,
+                    allowCreateEngram: allowCreateEngram,
+                  ),
                 ],
               );
             }),
@@ -121,6 +130,20 @@ void main() {
 
     expect(find.text('active:created-Journal'), findsOneWidget);
     expect(find.text('Journal'), findsWidgets); // footer renamed
+  });
+
+  testWidgets('New engram is hidden when creation is unsupported (web)',
+      (tester) async {
+    await tester.pumpWidget(
+      harness(_FakeRepo(discovery: discovery()), tutorial,
+          allowCreateEngram: false),
+    );
+
+    await tester.tap(find.text('Tutorial'));
+    await tester.pumpAndSettle();
+    // Built-ins are still switchable, but creation is not offered.
+    expect(find.text('Help'), findsOneWidget);
+    expect(find.text('New engram'), findsNothing);
   });
 
   testWidgets('an unavailable registry root is listed but disabled',
