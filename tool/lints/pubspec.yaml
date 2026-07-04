@@ -1,0 +1,13 @@
+# A tiny in-repo package holding the one shared definition of a "widget text
+# slot" (lib/text_slots.dart), imported by both enforcement layers so they can
+# never disagree about what counts as a hardcoded UI string:
+#   - the CLI gate  tool/check_l10n.dart          (this step)
+#   - the custom_lint rule no_raw_widget_strings  (Step 5, added here later)
+# Kept dependency-free for now; Step 5 adds custom_lint_builder + analyzer.
+name: brainframe_lints
+description: Shared lint definitions for BrainFrame (widget text slots).
+publish_to: none
+version: 0.0.1
+
+environment:
+  sdk: ^3.12.2

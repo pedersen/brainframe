@@ -63,6 +63,12 @@ dev_dependencies:
   # Test-only: provides InMemorySharedPreferencesAsync, the in-memory fake used
   # to exercise SharedPreferencesAsync-backed code without a platform channel.
   shared_preferences_platform_interface: ^2.4.2
+  # Tooling-only: the localization enforcement gate (tool/check_l10n.dart) parses
+  # the AST to find hardcoded UI strings; brainframe_lints holds the shared
+  # "widget text slot" definition it and the Step 5 custom_lint rule both use.
+  analyzer: ^13.0.0
+  brainframe_lints:
+    path: tool/lints
 
 # Launcher icons generated from the BrainFrame logo for every platform.
 # Regenerate with: dart run flutter_launcher_icons

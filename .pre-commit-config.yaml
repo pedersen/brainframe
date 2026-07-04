@@ -45,6 +45,18 @@ repos:
         pass_filenames: false
         require_serial: true
         stages: [pre-commit]
+      - id: l10n-gate
+        name: l10n gate (no hardcoded UI strings; pseudo-locale fresh)
+        language: system
+        # Cross-platform Dart check (no bash/grep): AST-scans lib/ for hardcoded
+        # widget-slot strings and verifies app_en_XA.arb matches the generator.
+        # GIT_* stripped for the same reason as flutter analyze above.
+        entry: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE dart run tool/check_l10n.dart
+        # Scans the whole tree once; run when Dart or ARB files are staged.
+        files: \.(dart|arb)$
+        pass_filenames: false
+        require_serial: true
+        stages: [pre-commit]
       - id: coverage-gate
         name: coverage gate (flutter test --coverage, >=90%)
         language: system

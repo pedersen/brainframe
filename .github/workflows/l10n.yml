@@ -1,0 +1,20 @@
+# Localization enforcement gate: fails a PR that introduces a hardcoded
+# user-facing string, or lets the generated pseudo-locale drift from its
+# template. Runs the same tool/check_l10n.dart as the pre-commit hook — a
+# cross-platform Dart check, no bash/grep — so local and CI verdicts match.
+name: l10n
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  l10n:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.4 # pin to match the local toolchain
+      - run: flutter pub get
+      - name: No hardcoded UI strings; pseudo-locale fresh
+        run: dart run tool/check_l10n.dart
