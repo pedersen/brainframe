@@ -1,0 +1,7 @@
+{
+  "@@locale": "en",
+  "appTitle": "BrainFrame",
+  "@appTitle": {
+    "description": "The application's name, shown as the window/task title. A proper noun — translators normally leave it as \"BrainFrame\"."
+  }
+}
