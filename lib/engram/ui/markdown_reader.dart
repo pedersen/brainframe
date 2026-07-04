@@ -3,6 +3,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import '../../l10n/gen/app_localizations.dart';
 import '../engram_store.dart';
+import 'file_path_breadcrumb.dart';
 
 /// A read-only Markdown viewer for one file in an engram.
 ///
@@ -54,9 +55,6 @@ class MarkdownReader extends StatelessWidget {
   }
 
   Widget _content(BuildContext context, String markdown) {
-    final muted = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).hintColor,
-        );
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       // Top-aligned, not centered: reading starts at the top of the pane.
@@ -67,11 +65,7 @@ class MarkdownReader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // File-path breadcrumb.
-              Semantics(
-                label: AppLocalizations.of(context).readerFilePath(path),
-                child: Text(path, style: muted),
-              ),
+              FilePathBreadcrumb(path: path),
               const SizedBox(height: 12),
               MarkdownBody(
                 data: markdown,
