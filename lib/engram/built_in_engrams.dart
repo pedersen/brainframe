@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart' show AssetBundle;
 
+import '../l10n/gen/app_localizations.dart';
 import 'asset_engram_store.dart';
 import 'engram.dart';
 
@@ -45,3 +46,17 @@ bool isBuiltInEngramId(String id) =>
 Engram builtInHelpEngram({AssetBundle? bundle}) =>
     builtInEngrams(bundle: bundle)
         .firstWhere((engram) => engram.id == builtinHelpId);
+
+/// The display name to show for [engram], localized for the built-ins.
+///
+/// A built-in's name ("Tutorial", "Help") is app-authored UI text, so it is
+/// localized from the ARB; a user engram's name is their own data and is shown
+/// verbatim. The stored [Engram.displayName] on the built-ins is the English
+/// default this resolves to for the base locale. Called from the widget layer,
+/// where the localizations are in scope.
+String localizedEngramName(Engram engram, AppLocalizations l10n) =>
+    switch (engram.id) {
+      builtinTutorialId => l10n.tutorialTitle,
+      builtinHelpId => l10n.helpTitle,
+      _ => engram.displayName,
+    };

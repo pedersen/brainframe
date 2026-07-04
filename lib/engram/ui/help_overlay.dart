@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import '../asset_engram_store.dart';
 import '../engram.dart';
+import '../engram_store.dart';
 import 'markdown_reader.dart';
 
 /// Opens the help engram as a floating read-only peek overlay (Decision 8).
@@ -28,8 +30,24 @@ class _HelpOverlay extends StatefulWidget {
 class _HelpOverlayState extends State<_HelpOverlay> {
   static const String _entryFile = 'index.md';
 
-  late final Future<List<String>> _paths = widget.helpEngram.store.list();
+  /// The help store bound to the active locale, and its page list. Resolved in
+  /// [didChangeDependencies] so the overlay reads localized pages (falling back
+  /// to English per file).
+  EngramStore? _store;
+  Future<List<String>>? _paths;
+  Locale? _locale;
   String _path = _entryFile;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Localizations.localeOf(context);
+    if (locale != _locale) {
+      _locale = locale;
+      _store = contentForLocale(widget.helpEngram.store, locale);
+      _paths = _store!.list();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +66,7 @@ class _HelpOverlayState extends State<_HelpOverlay> {
                 builder: (context, snapshot) {
                   final paths = snapshot.data ?? const <String>[];
                   return MarkdownReader(
-                    store: widget.helpEngram.store,
+                    store: _store!,
                     path: _path,
                     availablePaths: paths.toSet(),
                     onNavigateToFile: (path) => setState(() => _path = path),

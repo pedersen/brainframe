@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import '../built_in_engrams.dart';
 import '../desktop_folder_adoption.dart';
 import '../engram.dart';
 import '../engram_repository.dart';
@@ -36,9 +37,10 @@ class EngramSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final name = localizedEngramName(current, l10n);
     return Semantics(
       button: true,
-      label: l10n.switcherCurrentEngram(current.displayName),
+      label: l10n.switcherCurrentEngram(name),
       child: InkWell(
         onTap: () => _openSwitcher(context),
         child: ConstrainedBox(
@@ -51,7 +53,7 @@ class EngramSwitcher extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    current.displayName,
+                    name,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall,
                   ),
@@ -149,7 +151,7 @@ class _SwitcherSheet extends StatelessWidget {
               leading: Icon(
                 engram.readOnly ? Icons.menu_book_outlined : Icons.book_outlined,
               ),
-              title: Text(engram.displayName),
+              title: Text(localizedEngramName(engram, l10n)),
               trailing: engram.id == currentId ? const Icon(Icons.check) : null,
               selected: engram.id == currentId,
               onTap: () => onSelect(engram),

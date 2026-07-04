@@ -66,7 +66,12 @@
 
   "helpTitle": "Help",
   "@helpTitle": {
-    "description": "The help feature's name — used as the app-bar action tooltip and the help overlay's header."
+    "description": "The help feature's name — the app-bar action tooltip, the help overlay's header, and the built-in help engram's name in the switcher."
+  },
+
+  "tutorialTitle": "Tutorial",
+  "@tutorialTitle": {
+    "description": "The built-in tutorial engram's name, shown in the engram switcher."
   },
 
   "helpIndex": "Index",

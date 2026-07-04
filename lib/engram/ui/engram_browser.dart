@@ -6,10 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/gen/app_localizations.dart';
 import '../../widgets/app_scaffold.dart';
+import '../asset_engram_store.dart';
 import '../built_in_engrams.dart';
 import '../engram.dart';
 import '../engram_repository.dart';
 import '../engram_scope.dart';
+import '../engram_store.dart';
 import 'browser_preferences.dart';
 import 'engram_switcher.dart';
 import 'file_tree.dart';
@@ -73,21 +75,31 @@ class _EngramBrowserState extends State<EngramBrowser> {
   /// selecting a file or dragging the divider never re-lists the store.
   Future<_BrowserData>? _data;
   String? _loadedEngramId;
+  Locale? _loadedLocale;
+
+  /// The active engram's store bound to the current locale — used for every
+  /// content read so a built-in engram serves the localized page (falling back
+  /// to English per file). A no-op for filesystem engrams.
+  EngramStore? _contentStore;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // EngramScope is an inherited dependency, so this fires on first build and
-    // on every engram switch — exactly when the load should be (re)issued.
+    // Both EngramScope and Localizations are inherited dependencies, so this
+    // fires on first build, on every engram switch, and on a locale change —
+    // exactly when the content store and its listing should be (re)issued.
     final engram = EngramScope.of(context).engram;
-    if (engram.id != _loadedEngramId) {
+    final locale = Localizations.localeOf(context);
+    if (engram.id != _loadedEngramId || locale != _loadedLocale) {
       _loadedEngramId = engram.id;
-      _data = _load(engram);
+      _loadedLocale = locale;
+      _contentStore = contentForLocale(engram.store, locale);
+      _data = _load(engram, _contentStore!);
     }
   }
 
-  Future<_BrowserData> _load(Engram engram) async {
-    final paths = await engram.store.list();
+  Future<_BrowserData> _load(Engram engram, EngramStore store) async {
+    final paths = await store.list();
     final collapsed = await _prefs.collapsedFolders(engram.id);
     return _BrowserData(paths: paths, collapsed: collapsed);
   }
@@ -112,7 +124,9 @@ class _EngramBrowserState extends State<EngramBrowser> {
         ];
         final collapsed = data?.collapsed ?? const <String>{};
         final selected = _effectiveSelection(paths);
-        final title = selected != null ? _fileName(selected) : engram.displayName;
+        final title = selected != null
+            ? _fileName(selected)
+            : localizedEngramName(engram, AppLocalizations.of(context));
 
         return AppScaffold(
           title: title,
@@ -233,7 +247,8 @@ class _EngramBrowserState extends State<EngramBrowser> {
       );
     }
     return MarkdownReader(
-      store: engram.store,
+      // The locale-bound store, so a built-in engram reads the localized page.
+      store: _contentStore!,
       path: selected,
       availablePaths: paths.toSet(),
       onNavigateToFile: _selectFile,

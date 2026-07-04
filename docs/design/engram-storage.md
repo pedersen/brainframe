@@ -1,8 +1,9 @@
 # Engram storage design
 
 - **Status:** accepted (2026-06-30); amended 2026-07-02 (Decision 7 —
-  bytes-first store) and 2026-07-03 (Decision 8 — help dual-mode, refines
-  Decision 6)
+  bytes-first store), 2026-07-03 (Decision 8 — help dual-mode, refines
+  Decision 6), and 2026-07-04 (built-in content is now locale-partitioned —
+  refines Decision 5; see `i18n.md` Decision 7)
 - **Author:** Claude
 - **Date:** 2026-06-30
 
@@ -333,7 +334,12 @@ out here only so it is not forgotten; full UI is out of scope for this doc.
    and it gives v1 a real, testable non-filesystem backend (asset bundles
    even exist on web, so tutorial/help can render on the web stub). The
    copy-to-container alternative is rejected: it makes "uneditable" a soft UI
-   convention and adds update migration.
+   convention and adds update migration. **(Amended 2026-07-04 — the bundled
+   content is now locale-partitioned: each built-in's pages live under
+   per-locale subdirectories (`assets/engrams/tutorial/en/…`), the base locale
+   `en` defines the canonical page set, and `AssetEngramStore` resolves the
+   active locale with per-file fallback to `en`. The single fixed asset prefix
+   this decision assumed is now a per-locale prefix. See `i18n.md` Decision 7.)**
 6. **Tutorial opens as a full engram switch; help is a read-only reader
    overlay** (2026-06-30). The tutorial uses resolution (a): on first run it
    is the active engram in `EngramScope`, and the user leaves it by creating
