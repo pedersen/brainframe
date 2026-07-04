@@ -16,8 +16,8 @@ import 'browser_preferences.dart';
 import 'engram_switcher.dart';
 import 'file_tree.dart';
 import 'file_tree_node.dart';
+import 'file_viewer.dart';
 import 'help_overlay.dart';
-import 'markdown_reader.dart';
 
 /// Width below which the sidebar becomes an off-canvas drawer (phone). Above it
 /// the sidebar and reader sit side-by-side with a draggable divider between.
@@ -246,7 +246,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
         ),
       );
     }
-    return MarkdownReader(
+    return buildFileViewer(
       // The locale-bound store, so a built-in engram reads the localized page.
       store: _contentStore!,
       path: selected,

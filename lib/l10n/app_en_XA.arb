@@ -28,5 +28,7 @@
   "fileTreeFile": "[Ƒíłé {name}~~]",
   "readerLoading": "[Łóáđíñǵ ƒíłé~~~~]",
   "readerFilePath": "[Ƒíłé þáŧħ: {path}~~~~]",
-  "readerOpenError": "[Çóúłđ ñóŧ óþéñ “{path}”.~~~~~~]"
+  "readerOpenError": "[Çóúłđ ñóŧ óþéñ “{path}”.~~~~~~]",
+  "viewerImageLabel": "[Íɱáǵé {name}~~]",
+  "viewerUnsupportedFormat": "[Çáñ’ŧ đíšþłáý “{name}” ýéŧ.~~~~~~~]"
 }

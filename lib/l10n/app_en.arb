@@ -162,5 +162,21 @@
     "placeholders": {
       "path": { "type": "String", "example": "notes/first-note.md" }
     }
+  },
+
+  "viewerImageLabel": "Image {name}",
+  "@viewerImageLabel": {
+    "description": "Screen-reader label describing the rendered image in the viewer, since the file itself carries no alt text.",
+    "placeholders": {
+      "name": { "type": "String", "example": "diagram.png" }
+    }
+  },
+
+  "viewerUnsupportedFormat": "Can’t display “{name}” yet.",
+  "@viewerUnsupportedFormat": {
+    "description": "Message shown in the viewer when the selected file's format is recognized but has no viewer yet (e.g. PDF, EPUB).",
+    "placeholders": {
+      "name": { "type": "String", "example": "book.epub" }
+    }
   }
 }
