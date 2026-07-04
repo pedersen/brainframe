@@ -1,5 +1,6 @@
 import 'package:brainframe/app.dart';
 import 'package:brainframe/engram/engram_repository.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -37,6 +38,17 @@ void main() {
       find.textContaining('Welcome to BrainFrame', findRichText: true),
       findsWidgets,
     );
+  });
+
+  testWidgets('window title resolves through AppLocalizations', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    // MaterialApp feeds onGenerateTitle's result into a Title widget; finding
+    // 'BrainFrame' there proves the title is sourced from AppLocalizations, not
+    // a hardcoded string.
+    final title = tester.widget<Title>(find.byType(Title));
+    expect(title.title, 'BrainFrame');
   });
 
   testWidgets('selecting a file opens it in the reader', (tester) async {

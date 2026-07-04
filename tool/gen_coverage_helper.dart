@@ -28,6 +28,10 @@ void main() {
       .where((p) => p.endsWith('.dart'))
       .map((p) => p.substring(libRoot.length + 1)) // strip "lib/"
       .map((rel) => rel.replaceAll(Platform.pathSeparator, '/'))
+      // Skip generated gen-l10n output: it is git-ignored, excluded from the
+      // coverage trace, and may be absent before a build — importing it would
+      // both break this helper and count derived code.
+      .where((rel) => !rel.startsWith('l10n/gen/'))
       .toList()
     ..sort();
 

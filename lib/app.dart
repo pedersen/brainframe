@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'engram/engram_repository.dart';
 import 'engram/engram_startup_gate.dart';
 import 'engram/ui/engram_browser.dart';
+import 'l10n/gen/app_localizations.dart';
 import 'theme/app_settings.dart';
 import 'theme/app_theme.dart';
 
@@ -30,8 +31,12 @@ class BrainFrameApp extends StatelessWidget {
       // language anywhere (the themeability seam).
       child: Builder(
         builder: (context) => MaterialApp(
-          title: 'BrainFrame',
+          // Title is localized: onGenerateTitle runs inside a context that has
+          // the localizations, so it re-resolves when the locale changes.
+          onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
           debugShowCheckedModeBanner: false,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           // MaterialApp switches to these automatically when the platform
