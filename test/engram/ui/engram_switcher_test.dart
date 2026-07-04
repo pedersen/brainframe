@@ -12,6 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../../support/localized_app.dart';
+
 /// A no-op store for fake engrams — these tests exercise the switcher widget,
 /// not content access.
 class _FakeStore extends EngramStore {
@@ -66,7 +68,7 @@ void main() {
     Engram initial, {
     bool allowCreateEngram = true,
   }) =>
-      MaterialApp(
+      localizedApp(
         home: EngramScope(
           initialEngram: initial,
           child: Scaffold(

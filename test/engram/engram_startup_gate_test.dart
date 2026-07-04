@@ -8,6 +8,8 @@ import 'package:brainframe/engram/engram_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/localized_app.dart';
+
 class _EmptyStore extends EngramStore {
   @override
   Future<List<String>> list() async => const [];
@@ -25,7 +27,7 @@ Widget _gate({
   Future<void> Function(Engram)? onSwitched,
   Widget child = const SizedBox.shrink(),
 }) =>
-    MaterialApp(
+    localizedApp(
       home: EngramStartupGate(
         resolveInitialEngram: resolve,
         onSwitched: onSwitched,

@@ -19,6 +19,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../../support/localized_app.dart';
+
 void main() {
   late Directory tempRoot;
 
@@ -44,7 +46,7 @@ void main() {
   // Force the Material design language so the scaffold is deterministic.
   Widget harnessFor(EngramRepository repository, Engram engram) => AppSettings(
         designOverride: DesignLanguage.material,
-        child: MaterialApp(
+        child: localizedApp(
           home: EngramScope(
             initialEngram: engram,
             child: EngramBrowser(repository: repository),

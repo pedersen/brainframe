@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
+import '../../l10n/gen/app_localizations.dart';
 import '../desktop_folder_adoption.dart';
 import '../engram.dart';
 import '../engram_repository.dart';
@@ -34,9 +35,10 @@ class EngramSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Semantics(
       button: true,
-      label: 'Current engram ${current.displayName}. Switch engram',
+      label: l10n.switcherCurrentEngram(current.displayName),
       child: InkWell(
         onTap: () => _openSwitcher(context),
         child: ConstrainedBox(
@@ -56,7 +58,7 @@ class EngramSwitcher extends StatelessWidget {
                 ),
                 if (current.readOnly) ...[
                   Semantics(
-                    label: 'Read-only',
+                    label: l10n.switcherReadOnly,
                     child: Icon(Icons.lock_outline,
                         size: 15, color: theme.hintColor),
                   ),
@@ -133,13 +135,14 @@ class _SwitcherSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SafeArea(
       child: ListView(
         shrinkWrap: true,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Text('Engrams'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Text(l10n.switcherHeading),
           ),
           for (final engram in discovery.available)
             ListTile(
@@ -156,19 +159,19 @@ class _SwitcherSheet extends StatelessWidget {
               enabled: false,
               leading: const Icon(Icons.cloud_off_outlined),
               title: Text(unavailable.displayName),
-              subtitle: const Text('Unavailable — reconnect coming soon'),
+              subtitle: Text(l10n.switcherUnavailable),
             ),
           if (onNewEngram != null || onOpenFolder != null) const Divider(),
           if (onNewEngram != null)
             ListTile(
               leading: const Icon(Icons.add),
-              title: const Text('New engram'),
+              title: Text(l10n.switcherNewEngram),
               onTap: onNewEngram,
             ),
           if (onOpenFolder != null)
             ListTile(
               leading: const Icon(Icons.folder_open_outlined),
-              title: const Text('Open folder…'),
+              title: Text(l10n.switcherOpenFolder),
               onTap: onOpenFolder,
             ),
         ],
@@ -197,20 +200,21 @@ class _NewEngramDialogState extends State<_NewEngramDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog.adaptive(
-      title: const Text('New engram'),
+      title: Text(l10n.switcherNewEngram),
       content: TextField(
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(labelText: 'Name'),
+        decoration: InputDecoration(labelText: l10n.newEngramNameLabel),
         onSubmitted: (_) => _submit(),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
-        TextButton(onPressed: _submit, child: const Text('Create')),
+        TextButton(onPressed: _submit, child: Text(l10n.create)),
       ],
     );
   }

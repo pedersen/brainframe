@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../l10n/gen/app_localizations.dart';
 import '../../widgets/app_scaffold.dart';
 import '../built_in_engrams.dart';
 import '../engram.dart';
@@ -121,7 +122,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
           actions: [
             IconButton(
               icon: const Icon(Icons.help_outline),
-              tooltip: 'Help',
+              tooltip: AppLocalizations.of(context).helpTitle,
               onPressed: () => showHelpOverlay(context, builtInHelpEngram()),
             ),
           ],
@@ -150,6 +151,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
     required Set<String> collapsed,
     required String? selected,
   }) {
+    final l10n = AppLocalizations.of(context);
     // Build the FileTree only once its saved collapsed set is loaded, so its
     // state seeds from that set rather than from an empty default during load.
     // (Keyed by engram id so switching engrams re-seeds from the new set.)
@@ -170,6 +172,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
       tree: tree,
     );
     final reader = _reader(
+      l10n: l10n,
       engram: engram,
       loading: loading,
       hasError: hasError,
@@ -200,6 +203,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
   }
 
   Widget _reader({
+    required AppLocalizations l10n,
     required Engram engram,
     required bool loading,
     required bool hasError,
@@ -209,22 +213,20 @@ class _EngramBrowserState extends State<EngramBrowser> {
     if (loading) {
       return Center(
         child: Semantics(
-          label: 'Loading engram',
+          label: l10n.browserLoading,
           child: const CircularProgressIndicator.adaptive(),
         ),
       );
     }
     if (hasError) {
-      return const Center(child: Text('Could not read this engram.'));
+      return Center(child: Text(l10n.browserUnreadable));
     }
     if (selected == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            paths.isEmpty
-                ? 'This engram has no files yet.'
-                : 'Select a file to read it.',
+            paths.isEmpty ? l10n.engramEmpty : l10n.browserSelectFile,
             textAlign: TextAlign.center,
           ),
         ),
@@ -401,18 +403,20 @@ class _ResizeHandle extends StatelessWidget {
     onResizeEnd();
   }
 
-  String _label(double value) => '${value.round()} pixels wide';
+  String _label(AppLocalizations l10n, double value) =>
+      l10n.resizeHandleWidth(value.round());
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Semantics(
       slider: true,
-      label: 'Resize file browser',
+      label: l10n.resizeHandleLabel,
       // A slider with increase/decrease actions must declare all three values.
-      value: _label(width),
-      increasedValue: _label(_clamp(width + _resizeStep)),
-      decreasedValue: _label(_clamp(width - _resizeStep)),
+      value: _label(l10n, width),
+      increasedValue: _label(l10n, _clamp(width + _resizeStep)),
+      decreasedValue: _label(l10n, _clamp(width - _resizeStep)),
       // Screen-reader increase/decrease adjust the sidebar width.
       onIncrease: () => _nudge(_resizeStep),
       onDecrease: () => _nudge(-_resizeStep),
@@ -469,7 +473,7 @@ class _MenuButton extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.menu),
       onPressed: onPressed,
-      tooltip: 'Open file browser',
+      tooltip: AppLocalizations.of(context).menuOpenBrowser,
     );
   }
 }
@@ -503,7 +507,7 @@ class _SlideDrawer extends StatelessWidget {
             opacity: open ? 1 : 0,
             duration: duration,
             child: Semantics(
-              label: 'Close file browser',
+              label: AppLocalizations.of(context).drawerCloseBrowser,
               button: true,
               child: GestureDetector(
                 onTap: onClose,

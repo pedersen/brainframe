@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/gen/app_localizations.dart';
 import 'engram.dart';
 import 'engram_scope.dart';
 
@@ -54,7 +55,7 @@ class _EngramStartupGateState extends State<EngramStartupGate> {
           );
         }
         if (snapshot.hasError) {
-          return const _StartupMessage('Could not open your engrams.');
+          return _StartupMessage(AppLocalizations.of(context).startupOpenError);
         }
         return const _StartupMessage.loading();
       },
@@ -79,7 +80,7 @@ class _StartupMessage extends StatelessWidget {
     return Center(
       child: _loading
           ? Semantics(
-              label: 'Opening BrainFrame',
+              label: AppLocalizations.of(context).startupOpening,
               child: const CircularProgressIndicator.adaptive(),
             )
           : Text(message!, textAlign: TextAlign.center),
