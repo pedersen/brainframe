@@ -38,3 +38,10 @@ flutter run -d linux              # or: chrome, windows, macos, android, ios
 Contributions flow through the worktree → branch → pull request workflow
 described in `.claude/rules/git-workflow.md`. Run `scripts/install.sh` to set up
 the markdown lint and pre-commit tooling.
+
+## Translations
+
+BrainFrame is built to be translated — the interface, the built-in names, and
+the tutorial/help guides. No coding required, and partial translations are
+welcome (anything untranslated falls back to English). See the step-by-step
+guide in [`lib/l10n/README.md`](lib/l10n/README.md).
