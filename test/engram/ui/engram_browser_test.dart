@@ -1,17 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:brainframe/engram/built_in_engrams.dart';
 import 'package:brainframe/engram/engram.dart';
 import 'package:brainframe/engram/engram_repository.dart';
 import 'package:brainframe/engram/engram_scope.dart';
 import 'package:brainframe/engram/engram_store.dart';
+import 'package:brainframe/engram/ui/browser_preferences.dart';
 import 'package:brainframe/engram/ui/engram_browser.dart';
 import 'package:brainframe/engram/ui/markdown_reader.dart';
 import 'package:brainframe/theme/app_settings.dart';
 import 'package:brainframe/theme/design_language.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -149,6 +151,143 @@ void main() {
     expect(find.text('notes'), findsOneWidget); // visible folder
     expect(find.text('.hidden.md'), findsNothing);
     expect(find.text('.git'), findsNothing);
+  });
+
+  // The resize handle sits at the sidebar's right edge, so its left x-offset
+  // equals the current sidebar width.
+  Finder resizeHandle() => find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Resize file browser',
+        description: 'sidebar resize handle',
+      );
+
+  testWidgets('the resize divider appears only in the side-by-side layout',
+      (tester) async {
+    setWidth(tester, 1000); // wide
+    await tester.pumpWidget(harness(repo()));
+    await tester.pumpAndSettle();
+    expect(resizeHandle(), findsOneWidget);
+
+    setWidth(tester, 400); // drawer
+    await tester.pumpWidget(harness(repo()));
+    await tester.pumpAndSettle();
+    expect(resizeHandle(), findsNothing);
+  });
+
+  testWidgets('dragging the divider resizes the sidebar and saves the width',
+      (tester) async {
+    setWidth(tester, 1000);
+    await tester.pumpWidget(harness(repo()));
+    await tester.pumpAndSettle();
+
+    // Default width before any drag.
+    expect(tester.getTopLeft(resizeHandle()).dx, closeTo(260, 1));
+
+    // Drag the divider right; the sidebar widens (minus the recognizer's touch
+    // slop, so we assert direction, not an exact pixel count).
+    await tester.drag(resizeHandle(), const Offset(120, 0));
+    await tester.pumpAndSettle();
+    final widthAfter = tester.getTopLeft(resizeHandle()).dx;
+    expect(widthAfter, greaterThan(300));
+
+    // The width persisted on drag-end matches exactly what is shown.
+    final prefs = BrowserPreferences(SharedPreferencesAsync());
+    expect(await prefs.sidebarWidth(), closeTo(widthAfter, 1));
+  });
+
+  testWidgets('a saved sidebar width is restored on launch', (tester) async {
+    await BrowserPreferences(SharedPreferencesAsync()).setSidebarWidth(420);
+
+    setWidth(tester, 1000);
+    await tester.pumpWidget(harness(repo()));
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(resizeHandle()).dx, closeTo(420, 1));
+  });
+
+  testWidgets(
+      'collapsing a folder persists to device state and restores on relaunch',
+      (tester) async {
+    setWidth(tester, 1000);
+    final engram = Engram(
+      id: 'dotty',
+      displayName: 'Dotty',
+      readOnly: false,
+      store: _DotStore(),
+    );
+
+    await tester.pumpWidget(harnessFor(repo(), engram));
+    await tester.pumpAndSettle();
+    expect(find.text('first.md'), findsOneWidget); // starts expanded
+
+    await tester.tap(find.text('notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('first.md'), findsNothing); // collapsed live
+
+    // Saved to device-local preferences, keyed by engram id — not to the store.
+    final prefs = BrowserPreferences(SharedPreferencesAsync());
+    expect(await prefs.collapsedFolders('dotty'), {'notes'});
+
+    // Tear the tree down, then rebuild fresh so state must come from prefs.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(harnessFor(repo(), engram));
+    await tester.pumpAndSettle();
+    expect(find.text('notes'), findsOneWidget);
+    expect(find.text('first.md'), findsNothing); // restored collapsed
+  });
+
+  testWidgets('the resize handle is an operable slider for assistive tech',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    setWidth(tester, 1000);
+    await tester.pumpWidget(harness(repo()));
+    await tester.pumpAndSettle();
+
+    final node = tester.getSemantics(resizeHandle());
+    final data = node.getSemanticsData();
+    expect(data.flagsCollection.isSlider, isTrue);
+    expect(data.label, 'Resize file browser');
+    expect(data.hasAction(SemanticsAction.increase), isTrue);
+    expect(data.hasAction(SemanticsAction.decrease), isTrue);
+
+    // Increase then decrease adjust the sidebar in opposite directions.
+    final start = tester.getTopLeft(resizeHandle()).dx;
+    // ignore: deprecated_member_use
+    final owner = tester.binding.pipelineOwner.semanticsOwner!;
+    owner.performAction(node.id, SemanticsAction.increase);
+    await tester.pumpAndSettle();
+    final widened = tester.getTopLeft(resizeHandle()).dx;
+    expect(widened, greaterThan(start));
+
+    owner.performAction(node.id, SemanticsAction.decrease);
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(resizeHandle()).dx, lessThan(widened));
+
+    // The last adjustment was saved to device-local preferences.
+    expect(
+      await BrowserPreferences(SharedPreferencesAsync()).sidebarWidth(),
+      isNotNull,
+    );
+
+    semantics.dispose();
+  });
+
+  testWidgets('the divider can be resized from the keyboard', (tester) async {
+    setWidth(tester, 1000);
+    await tester.pumpWidget(harness(repo()));
+    await tester.pumpAndSettle();
+
+    // Focus the handle, then nudge it wider with the right arrow key. The
+    // handle's FocusNode is reachable via Focus.of from a context beneath it.
+    final gestureContext = tester.element(
+      find.descendant(of: resizeHandle(), matching: find.byType(GestureDetector)),
+    );
+    final before = tester.getTopLeft(resizeHandle()).dx;
+    Focus.of(gestureContext).requestFocus();
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(resizeHandle()).dx, greaterThan(before));
   });
 }
 

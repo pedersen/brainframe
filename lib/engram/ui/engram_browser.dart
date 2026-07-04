@@ -1,18 +1,35 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../widgets/app_scaffold.dart';
 import '../built_in_engrams.dart';
 import '../engram.dart';
 import '../engram_repository.dart';
 import '../engram_scope.dart';
+import 'browser_preferences.dart';
 import 'engram_switcher.dart';
 import 'file_tree.dart';
 import 'file_tree_node.dart';
 import 'help_overlay.dart';
 import 'markdown_reader.dart';
 
-/// Width below which the sidebar becomes an off-canvas drawer (phone).
+/// Width below which the sidebar becomes an off-canvas drawer (phone). Above it
+/// the sidebar and reader sit side-by-side with a draggable divider between.
 const double _drawerBreakpoint = 720;
+
+/// Sidebar width bounds and starting point for the draggable divider, in
+/// logical pixels. The maximum is derived per-layout (leaving [_minReaderWidth]
+/// for the reader); these are the fixed floor and default.
+const double _minSidebarWidth = 180;
+const double _defaultSidebarWidth = 260;
+const double _minReaderWidth = 320;
+
+/// Keyboard/assistive step when nudging the divider (arrow keys, screen-reader
+/// increment/decrement).
+const double _resizeStep = 24;
 
 /// The read-only engram browser: a file-tree sidebar next to a Markdown reader.
 ///
@@ -23,10 +40,18 @@ const double _drawerBreakpoint = 720;
 /// a phone, closes the drawer). This is the structure-only Step 8 UI — the
 /// design handoff's bespoke styling is deferred.
 class EngramBrowser extends StatefulWidget {
-  const EngramBrowser({super.key, required this.repository});
+  const EngramBrowser({
+    super.key,
+    required this.repository,
+    this.preferences,
+  });
 
   /// Supplies the engram switcher its list of engrams and create/adopt actions.
   final EngramRepository repository;
+
+  /// Device-local view state (sidebar width, per-engram collapsed folders).
+  /// Injectable for tests; defaults to the app's shared preferences store.
+  final BrowserPreferences? preferences;
 
   @override
   State<EngramBrowser> createState() => _EngramBrowserState();
@@ -39,23 +64,52 @@ class _EngramBrowserState extends State<EngramBrowser> {
   String? _selectedPath;
   bool _drawerOpen = false;
 
+  late final BrowserPreferences _prefs =
+      widget.preferences ?? BrowserPreferences(SharedPreferencesAsync());
+
+  /// The active engram's file list plus its restored collapsed-folder set,
+  /// loaded once per engram. Held in a field (not rebuilt in `build`) so
+  /// selecting a file or dragging the divider never re-lists the store.
+  Future<_BrowserData>? _data;
+  String? _loadedEngramId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // EngramScope is an inherited dependency, so this fires on first build and
+    // on every engram switch — exactly when the load should be (re)issued.
+    final engram = EngramScope.of(context).engram;
+    if (engram.id != _loadedEngramId) {
+      _loadedEngramId = engram.id;
+      _data = _load(engram);
+    }
+  }
+
+  Future<_BrowserData> _load(Engram engram) async {
+    final paths = await engram.store.list();
+    final collapsed = await _prefs.collapsedFolders(engram.id);
+    return _BrowserData(paths: paths, collapsed: collapsed);
+  }
+
   @override
   Widget build(BuildContext context) {
     final engram = EngramScope.of(context).engram;
     final isNarrow = MediaQuery.sizeOf(context).width < _drawerBreakpoint;
 
-    return FutureBuilder<List<String>>(
+    return FutureBuilder<_BrowserData>(
       key: ValueKey(engram.id),
-      future: engram.store.list(),
+      future: _data,
       builder: (context, snapshot) {
         final loading = !snapshot.hasData && !snapshot.hasError;
+        final data = snapshot.data;
         // Hide dotfiles and dot-directories (.git, .obsidian, the .brainframe
         // marker) from the browser, so the tree, the default selection, and
         // link resolution all see the same visible set.
         final paths = [
-          for (final path in snapshot.data ?? const <String>[])
+          for (final path in data?.paths ?? const <String>[])
             if (!isHiddenEngramPath(path)) path,
         ];
+        final collapsed = data?.collapsed ?? const <String>{};
         final selected = _effectiveSelection(paths);
         final title = selected != null ? _fileName(selected) : engram.displayName;
 
@@ -78,6 +132,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
             loading: loading,
             hasError: snapshot.hasError,
             paths: paths,
+            collapsed: collapsed,
             selected: selected,
           ),
         );
@@ -92,14 +147,27 @@ class _EngramBrowserState extends State<EngramBrowser> {
     required bool loading,
     required bool hasError,
     required List<String> paths,
+    required Set<String> collapsed,
     required String? selected,
   }) {
+    // Build the FileTree only once its saved collapsed set is loaded, so its
+    // state seeds from that set rather than from an empty default during load.
+    // (Keyed by engram id so switching engrams re-seeds from the new set.)
+    final Widget tree = loading
+        ? const SizedBox.shrink()
+        : FileTree(
+            key: ValueKey(engram.id),
+            nodes: buildFileTree(paths),
+            selectedPath: selected,
+            onSelectFile: _selectFile,
+            initialCollapsed: collapsed,
+            onCollapsedChanged: (set) =>
+                _prefs.setCollapsedFolders(engram.id, set),
+          );
     final sidebar = _Sidebar(
       engram: engram,
       repository: widget.repository,
-      nodes: buildFileTree(paths),
-      selectedPath: selected,
-      onSelectFile: _selectFile,
+      tree: tree,
     );
     final reader = _reader(
       engram: engram,
@@ -110,18 +178,11 @@ class _EngramBrowserState extends State<EngramBrowser> {
     );
 
     if (!isNarrow) {
-      final wide = MediaQuery.sizeOf(context).width >= 1080;
-      return Row(
-        // Stretch so the reader fills the full pane height. Without it, Row's
-        // default center alignment gives loose vertical constraints, the
-        // reader's scroll view shrink-wraps to its content, and the Row then
-        // centers that short block vertically.
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(width: wide ? 260 : 210, child: sidebar),
-          const VerticalDivider(width: 1),
-          Expanded(child: reader),
-        ],
+      // Side-by-side with a draggable divider that remembers its width.
+      return _ResizableSplitView(
+        preferences: _prefs,
+        sidebar: sidebar,
+        reader: reader,
       );
     }
 
@@ -198,23 +259,26 @@ class _EngramBrowserState extends State<EngramBrowser> {
 
 String _fileName(String path) => path.split('/').last;
 
-/// The sidebar: the file tree above a footer that names the current engram.
-/// The footer becomes the engram switcher in the next step; for now it is a
-/// static label carrying the engram's name and read-only state.
+/// The active engram's loaded browser state: its file list and the collapsed
+/// folders restored from this device's saved preference.
+class _BrowserData {
+  const _BrowserData({required this.paths, required this.collapsed});
+
+  final List<String> paths;
+  final Set<String> collapsed;
+}
+
+/// The sidebar: the file [tree] above a footer that switches engrams.
 class _Sidebar extends StatelessWidget {
   const _Sidebar({
     required this.engram,
     required this.repository,
-    required this.nodes,
-    required this.selectedPath,
-    required this.onSelectFile,
+    required this.tree,
   });
 
   final Engram engram;
   final EngramRepository repository;
-  final List<FileTreeNode> nodes;
-  final String? selectedPath;
-  final void Function(String path) onSelectFile;
+  final Widget tree;
 
   @override
   Widget build(BuildContext context) {
@@ -225,13 +289,7 @@ class _Sidebar extends StatelessWidget {
         right: false,
         child: Column(
           children: [
-            Expanded(
-              child: FileTree(
-                nodes: nodes,
-                selectedPath: selectedPath,
-                onSelectFile: onSelectFile,
-              ),
-            ),
+            Expanded(child: tree),
             const Divider(height: 1),
             EngramSwitcher(repository: repository, current: engram),
           ],
@@ -239,6 +297,166 @@ class _Sidebar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A [sidebar] and [reader] side-by-side, separated by a divider the user can
+/// drag to resize the sidebar. The chosen width is restored on launch and saved
+/// (once, when the drag ends) to device-local preferences. Width is clamped so
+/// neither pane starves; the drag handle is keyboard- and screen-reader
+/// operable.
+///
+/// The width lives in this widget's own state, so dragging repaints only the
+/// split — not the browser above it, which holds the engram's file list.
+class _ResizableSplitView extends StatefulWidget {
+  const _ResizableSplitView({
+    required this.preferences,
+    required this.sidebar,
+    required this.reader,
+  });
+
+  final BrowserPreferences preferences;
+  final Widget sidebar;
+  final Widget reader;
+
+  @override
+  State<_ResizableSplitView> createState() => _ResizableSplitViewState();
+}
+
+class _ResizableSplitViewState extends State<_ResizableSplitView> {
+  // Null until the saved width loads (or if none was ever saved); the default
+  // applies meanwhile. Always re-clamped to the live viewport in [build].
+  double? _width;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.preferences.sidebarWidth().then((saved) {
+      if (mounted && saved != null) setState(() => _width = saved);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Leave room for the reader; never let the sidebar exceed that.
+        final maxWidth =
+            math.max(_minSidebarWidth, constraints.maxWidth - _minReaderWidth);
+        final width =
+            (_width ?? _defaultSidebarWidth).clamp(_minSidebarWidth, maxWidth);
+        return Row(
+          // Stretch so the reader fills the full pane height. Without it, Row's
+          // default center alignment gives loose vertical constraints, the
+          // reader's scroll view shrink-wraps to its content, and the Row then
+          // centers that short block vertically.
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(width: width, child: widget.sidebar),
+            _ResizeHandle(
+              width: width,
+              minWidth: _minSidebarWidth,
+              maxWidth: maxWidth,
+              onResize: (next) => setState(() => _width = next),
+              onResizeEnd: _persist,
+            ),
+            Expanded(child: widget.reader),
+          ],
+        );
+      },
+    );
+  }
+
+  void _persist() {
+    if (_width != null) widget.preferences.setSidebarWidth(_width!);
+  }
+}
+
+/// The draggable divider between the sidebar and reader.
+///
+/// A thin visual line inside a wider transparent hit strip (easier to grab than
+/// a 1px target), showing a horizontal-resize cursor. It is fully accessible:
+/// exposed to screen readers as a slider with increment/decrement actions, and
+/// operable from a physical keyboard with the arrow keys once focused. All
+/// nudges and drags feed [onResize]; [onResizeEnd] fires when the interaction
+/// settles, so the host persists once rather than on every pixel.
+class _ResizeHandle extends StatelessWidget {
+  const _ResizeHandle({
+    required this.width,
+    required this.minWidth,
+    required this.maxWidth,
+    required this.onResize,
+    required this.onResizeEnd,
+  });
+
+  final double width;
+  final double minWidth;
+  final double maxWidth;
+  final ValueChanged<double> onResize;
+  final VoidCallback onResizeEnd;
+
+  double _clamp(double value) => value.clamp(minWidth, maxWidth);
+
+  void _nudge(double delta) {
+    onResize(_clamp(width + delta));
+    onResizeEnd();
+  }
+
+  String _label(double value) => '${value.round()} pixels wide';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      slider: true,
+      label: 'Resize file browser',
+      // A slider with increase/decrease actions must declare all three values.
+      value: _label(width),
+      increasedValue: _label(_clamp(width + _resizeStep)),
+      decreasedValue: _label(_clamp(width - _resizeStep)),
+      // Screen-reader increase/decrease adjust the sidebar width.
+      onIncrease: () => _nudge(_resizeStep),
+      onDecrease: () => _nudge(-_resizeStep),
+      child: FocusableActionDetector(
+        actions: <Type, Action<Intent>>{
+          _NudgeIntent: CallbackAction<_NudgeIntent>(
+            onInvoke: (intent) {
+              _nudge(intent.delta);
+              return null;
+            },
+          ),
+        },
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.arrowLeft):
+              _NudgeIntent(-_resizeStep),
+          SingleActivator(LogicalKeyboardKey.arrowRight):
+              _NudgeIntent(_resizeStep),
+        },
+        mouseCursor: SystemMouseCursors.resizeLeftRight,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragUpdate: (details) =>
+              onResize(_clamp(width + details.delta.dx)),
+          onHorizontalDragEnd: (_) => onResizeEnd(),
+          child: SizedBox(
+            width: 12,
+            child: Center(
+              child: ColoredBox(
+                color: theme.dividerColor,
+                child: const SizedBox(width: 1, height: double.infinity),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Intent for a keyboard/assistive nudge of the divider by [delta] pixels.
+class _NudgeIntent extends Intent {
+  const _NudgeIntent(this.delta);
+
+  final double delta;
 }
 
 class _MenuButton extends StatelessWidget {
