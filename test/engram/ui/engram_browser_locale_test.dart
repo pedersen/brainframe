@@ -1,6 +1,7 @@
 import 'package:brainframe/engram/asset_engram_store.dart';
 import 'package:brainframe/engram/built_in_engrams.dart';
 import 'package:brainframe/engram/engram.dart';
+import 'package:brainframe/l10n/gen/app_localizations.dart';
 import 'package:brainframe/engram/engram_repository.dart';
 import 'package:brainframe/engram/engram_scope.dart';
 import 'package:brainframe/engram/ui/engram_browser.dart';
@@ -65,5 +66,34 @@ void main() {
         find.textContaining('Pseudo welcome', findRichText: true), findsWidgets);
     expect(find.textContaining('English welcome', findRichText: true),
         findsNothing);
+  });
+
+  testWidgets('built-in engram names are localized (tutorial & help)',
+      (tester) async {
+    final builtIns = builtInEngrams();
+    Widget probe(Locale locale) => localizedApp(
+          locale: locale,
+          home: Builder(
+            builder: (context) {
+              final l10n = AppLocalizations.of(context);
+              return Column(
+                children: [
+                  for (final e in builtIns) Text(localizedEngramName(e, l10n)),
+                ],
+              );
+            },
+          ),
+        );
+
+    await tester.pumpWidget(probe(const Locale('en')));
+    expect(find.text('Tutorial'), findsOneWidget);
+    expect(find.text('Help'), findsOneWidget);
+
+    await tester.pumpWidget(probe(const Locale('en', 'XA')));
+    await tester.pump();
+    // Pseudo-localized: the English names are gone, replaced by bracketed text.
+    expect(find.text('Tutorial'), findsNothing);
+    expect(find.text('Help'), findsNothing);
+    expect(find.textContaining('['), findsNWidgets(2));
   });
 }

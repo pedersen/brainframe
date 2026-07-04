@@ -124,7 +124,9 @@ class _EngramBrowserState extends State<EngramBrowser> {
         ];
         final collapsed = data?.collapsed ?? const <String>{};
         final selected = _effectiveSelection(paths);
-        final title = selected != null ? _fileName(selected) : engram.displayName;
+        final title = selected != null
+            ? _fileName(selected)
+            : localizedEngramName(engram, AppLocalizations.of(context));
 
         return AppScaffold(
           title: title,
