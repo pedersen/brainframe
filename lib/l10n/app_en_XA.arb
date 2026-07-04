@@ -30,5 +30,7 @@
   "readerFilePath": "[Ƒíłé þáŧħ: {path}~~~~]",
   "readerOpenError": "[Çóúłđ ñóŧ óþéñ “{path}”.~~~~~~]",
   "viewerImageLabel": "[Íɱáǵé {name}~~]",
-  "viewerUnsupportedFormat": "[Çáñ’ŧ đíšþłáý “{name}” ýéŧ.~~~~~~~]"
+  "viewerUnsupportedFormat": "[Çáñ’ŧ đíšþłáý “{name}” ýéŧ.~~~~~~~]",
+  "viewerImageActualSize": "[Víéŵ áŧ ƒúłł šížé~~~~~~]",
+  "viewerImageFitToWindow": "[Ƒíŧ íɱáǵé ŧó ŵíñđóŵ~~~~~~]"
 }
