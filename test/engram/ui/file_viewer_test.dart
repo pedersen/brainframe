@@ -57,6 +57,7 @@ void main() {
     test('classify markdown and image paths', () {
       expect(isMarkdownPath('welcome.md'), isTrue);
       expect(isMarkdownPath('notes/a.markdown'), isTrue);
+      expect(isMarkdownPath('notes/log.txt'), isTrue); // plain text renders too
       expect(isMarkdownPath('photo.png'), isFalse);
 
       for (final p in ['a.png', 'a.jpg', 'a.jpeg', 'a.gif', 'a.webp', 'a.bmp']) {
@@ -70,6 +71,7 @@ void main() {
   group('buildFileViewer dispatch', () {
     final store = _MapStore({
       'welcome.md': _text('# Hi'),
+      'notes/log.txt': _text('plain text note'),
       'diagram.png': _onePixelPng,
       'book.epub': _text('not really an epub'),
     });
@@ -80,6 +82,19 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(MarkdownReader), findsOneWidget);
+    });
+
+    testWidgets('plain text routes to MarkdownReader and renders',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(buildFileViewer(store: store, path: 'notes/log.txt')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(MarkdownReader), findsOneWidget);
+      expect(
+        find.textContaining('plain text note', findRichText: true),
+        findsWidgets,
+      );
     });
 
     testWidgets('image routes to ImageFileViewer', (tester) async {

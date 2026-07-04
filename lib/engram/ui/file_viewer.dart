@@ -11,8 +11,13 @@ import 'markdown_reader.dart';
 /// dependency. Lower-case, without the leading dot.
 const Set<String> imageExtensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'};
 
-/// Markdown extensions routed to [MarkdownReader].
-const Set<String> markdownExtensions = {'md', 'markdown'};
+/// Extensions rendered by [MarkdownReader]. Plain text (`.txt`) is included
+/// because Markdown is a superset of plain text — a `.txt` file is already
+/// valid Markdown input, so it renders as nicely-formatted text rather than
+/// falling through to the unsupported placeholder. (One caveat: the Markdown
+/// renderer treats a single newline as a soft break, so hard-wrapped plain text
+/// reflows into paragraphs.)
+const Set<String> markdownExtensions = {'md', 'markdown', 'txt'};
 
 /// The lower-cased extension of [path] (no dot), or `''` when it has none.
 ///
