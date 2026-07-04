@@ -23,6 +23,8 @@ class FileTree extends StatefulWidget {
     required this.nodes,
     required this.selectedPath,
     required this.onSelectFile,
+    this.initialCollapsed = const <String>{},
+    this.onCollapsedChanged,
   });
 
   /// The roots of the tree (see [buildFileTree]).
@@ -33,13 +35,24 @@ class FileTree extends StatefulWidget {
 
   final void Function(String path) onSelectFile;
 
+  /// Folder paths (engram-relative) that start collapsed, restored from a saved
+  /// per-engram preference. Read once to seed state; give the tree a [Key] tied
+  /// to the engram so switching engrams re-seeds from that engram's saved set.
+  final Set<String> initialCollapsed;
+
+  /// Called with the full collapsed set whenever the user expands or collapses
+  /// a folder, so the host can persist it. The tree owns the live state; this
+  /// is a notification, not a controlling input.
+  final void Function(Set<String> collapsed)? onCollapsedChanged;
+
   @override
   State<FileTree> createState() => _FileTreeState();
 }
 
 class _FileTreeState extends State<FileTree> {
   // Folders collapsed by their full path. Absent means expanded (default open).
-  final Set<String> _collapsed = <String>{};
+  // Seeded from the saved preference; see [FileTree.initialCollapsed].
+  late final Set<String> _collapsed = {...widget.initialCollapsed};
 
   // Bumped whenever the collapsed set changes, so the memoized content-width
   // measurement below knows the visible row set has changed.
@@ -162,15 +175,22 @@ class _FileTreeState extends State<FileTree> {
       node: node,
       depth: row.depth,
       expanded: expanded,
-      onTap: () => setState(() {
-        if (expanded) {
-          _collapsed.add(row.fullPath);
-        } else {
-          _collapsed.remove(row.fullPath);
-        }
-        _collapsedVersion++;
-      }),
+      onTap: () => _toggleFolder(row.fullPath, expanded),
     );
+  }
+
+  void _toggleFolder(String fullPath, bool expanded) {
+    setState(() {
+      if (expanded) {
+        _collapsed.add(fullPath);
+      } else {
+        _collapsed.remove(fullPath);
+      }
+      _collapsedVersion++;
+    });
+    // Notify after the mutation so the host persists the new set. A fresh copy
+    // keeps the caller from aliasing our mutable state.
+    widget.onCollapsedChanged?.call(Set<String>.of(_collapsed));
   }
 
   /// The width the row column needs so the longest name is fully visible.

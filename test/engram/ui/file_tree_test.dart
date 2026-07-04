@@ -115,4 +115,36 @@ void main() {
     )));
     expect(find.textContaining('no files'), findsOneWidget);
   });
+
+  testWidgets('initialCollapsed seeds folders as collapsed', (tester) async {
+    await tester.pumpWidget(_host(FileTree(
+      nodes: buildFileTree(['notes/first.md']),
+      selectedPath: null,
+      onSelectFile: (_) {},
+      initialCollapsed: const {'notes'},
+    )));
+
+    // The folder is shown but seeded collapsed, so its child is hidden.
+    expect(find.text('notes'), findsOneWidget);
+    expect(find.text('first.md'), findsNothing);
+  });
+
+  testWidgets('onCollapsedChanged reports the full set on each toggle',
+      (tester) async {
+    Set<String>? latest;
+    await tester.pumpWidget(_host(FileTree(
+      nodes: buildFileTree(['notes/first.md']),
+      selectedPath: null,
+      onSelectFile: (_) {},
+      onCollapsedChanged: (set) => latest = set,
+    )));
+
+    await tester.tap(find.text('notes')); // collapse
+    await tester.pumpAndSettle();
+    expect(latest, {'notes'});
+
+    await tester.tap(find.text('notes')); // expand again
+    await tester.pumpAndSettle();
+    expect(latest, isEmpty);
+  });
 }
