@@ -36,9 +36,7 @@ Future<void> initWindowManager() async {
     size: saved?.size ?? _defaultSize,
     minimumSize: _minimumSize,
     center: saved == null,
-    // The native OS window title (window_manager), set before the Flutter tree
-    // exists — not a localizable widget string; "BrainFrame" is a proper noun.
-    title: 'BrainFrame', // l10n-ignore
+    title: 'BrainFrame',
   );
 
   await windowManager.waitUntilReadyToShow(options, () async {

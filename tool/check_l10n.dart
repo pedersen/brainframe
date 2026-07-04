@@ -59,7 +59,8 @@ void main() {
     ..writeln('')
     ..writeln(
       'Route user-facing text through AppLocalizations. If a flagged literal '
-      'is genuinely not UI text, add a "// l10n-ignore" comment on its line.',
+      'is genuinely not UI text, add "// ignore: no_raw_widget_strings" (or '
+      '"// l10n-ignore") on its line.',
     );
   exit(1);
 }
@@ -90,43 +91,51 @@ class _RawStringVisitor extends RecursiveAstVisitor<void> {
   final List<_Finding> findings;
 
   @override
-  void visitArgumentList(ArgumentList node) {
-    // A string literal is user-facing when it is (a) passed to a named slot
-    // like label:/tooltip:/hintText:, or (b) the first positional argument of a
-    // Text(...) call. Every argument exposes argumentExpression; named ones are
-    // NamedArgument (analyzer 13's rename of NamedExpression).
-    final isText = _isTextCall(node.parent);
-    var positionalSeen = false;
-    for (final arg in node.arguments) {
-      if (arg is NamedArgument) {
-        if (localizableSlotNames.contains(arg.name.lexeme)) {
-          _check(arg.argumentExpression);
-        }
-      } else {
-        if (isText && !positionalSeen) _check(arg.argumentExpression);
-        positionalSeen = true;
-      }
+  void visitNamedExpression(NamedExpression node) {
+    // A string in a named slot like label:/tooltip:/hintText: is user-facing.
+    if (localizableSlotNames.contains(node.name.label.name)) {
+      _check(node.expression);
     }
-    super.visitArgumentList(node);
+    super.visitNamedExpression(node);
   }
 
-  /// Whether [parent] is an unprefixed `Text(...)` call (a method invocation
-  /// without type resolution, or a `const`/`new` instance creation).
-  bool _isTextCall(AstNode? parent) {
-    if (parent is MethodInvocation) {
-      return parent.methodName.name == textWidgetName && parent.realTarget == null;
+  @override
+  void visitMethodInvocation(MethodInvocation node) {
+    // Unresolved parsing renders an unprefixed `Text(...)` as a method call.
+    if (node.methodName.name == textWidgetName && node.realTarget == null) {
+      _checkFirstPositional(node.argumentList);
     }
-    if (parent is InstanceCreationExpression) {
-      return parent.constructorName.type.toSource() == textWidgetName;
+    super.visitMethodInvocation(node);
+  }
+
+  @override
+  void visitInstanceCreationExpression(InstanceCreationExpression node) {
+    // `const`/`new Text(...)` parses as an instance creation instead.
+    if (node.constructorName.type.toSource() == textWidgetName) {
+      _checkFirstPositional(node.argumentList);
     }
-    return false;
+    super.visitInstanceCreationExpression(node);
+  }
+
+  void _checkFirstPositional(ArgumentList args) {
+    for (final arg in args.arguments) {
+      if (arg is NamedExpression) continue;
+      _check(arg); // the first positional argument
+      return;
+    }
   }
 
   void _check(Expression expr) {
     if (expr is! StringLiteral || !_hasLetters(expr)) return;
     final lineNumber = _lineOf(expr.offset);
     final snippet = lines[lineNumber - 1];
-    if (snippet.contains('l10n-ignore')) return;
+    // Honor either marker: the custom_lint rule shares the same opt-out
+    // (`// ignore: no_raw_widget_strings`), and `// l10n-ignore` opts out of the
+    // gate alone.
+    if (snippet.contains('l10n-ignore') ||
+        snippet.contains('ignore: no_raw_widget_strings')) {
+      return;
+    }
     final column = expr.offset - _lineStartOffset(lineNumber) + 1;
     findings.add(_Finding(path, lineNumber, column, snippet));
   }

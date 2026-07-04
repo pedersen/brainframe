@@ -63,10 +63,14 @@ dev_dependencies:
   # Test-only: provides InMemorySharedPreferencesAsync, the in-memory fake used
   # to exercise SharedPreferencesAsync-backed code without a platform channel.
   shared_preferences_platform_interface: ^2.4.2
-  # Tooling-only: the localization enforcement gate (tool/check_l10n.dart) parses
-  # the AST to find hardcoded UI strings; brainframe_lints holds the shared
-  # "widget text slot" definition it and the Step 5 custom_lint rule both use.
-  analyzer: ^13.0.0
+  # Localization enforcement, both layers (design Decision 3):
+  #   - tool/check_l10n.dart (CLI gate) parses the AST to find hardcoded strings.
+  #   - custom_lint runs brainframe_lints' no_raw_widget_strings rule in the IDE.
+  # Both use the analyzer package; custom_lint caps it at ^8, so the whole
+  # tooling layer is pinned there. This is a dev-only dep — it does not affect
+  # the app or `flutter analyze`, which use the SDK's own bundled analyzer.
+  analyzer: ^8.0.0
+  custom_lint: ^0.8.0
   brainframe_lints:
     path: tool/lints
 
