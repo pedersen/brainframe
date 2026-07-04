@@ -3,9 +3,11 @@ import 'package:brainframe/engram/ui/help_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/localized_app.dart';
+
 void main() {
   // A button that opens the help overlay over the bundled help engram.
-  Widget host() => MaterialApp(
+  Widget host() => localizedApp(
         home: Scaffold(
           body: Builder(
             builder: (context) => TextButton(

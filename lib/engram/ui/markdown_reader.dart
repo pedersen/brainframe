@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
+import '../../l10n/gen/app_localizations.dart';
 import '../engram_store.dart';
 
 /// A read-only Markdown viewer for one file in an engram.
@@ -36,12 +37,13 @@ class MarkdownReader extends StatelessWidget {
       future: store.readString(path),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return _centered(context, 'Could not open “$path”.');
+          return _centered(
+              context, AppLocalizations.of(context).readerOpenError(path));
         }
         if (!snapshot.hasData) {
           return Center(
             child: Semantics(
-              label: 'Loading file',
+              label: AppLocalizations.of(context).readerLoading,
               child: const CircularProgressIndicator.adaptive(),
             ),
           );
@@ -67,7 +69,7 @@ class MarkdownReader extends StatelessWidget {
             children: [
               // File-path breadcrumb.
               Semantics(
-                label: 'File path: $path',
+                label: AppLocalizations.of(context).readerFilePath(path),
                 child: Text(path, style: muted),
               ),
               const SizedBox(height: 12),

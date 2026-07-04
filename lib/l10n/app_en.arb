@@ -1,7 +1,161 @@
 {
   "@@locale": "en",
+
   "appTitle": "BrainFrame",
   "@appTitle": {
     "description": "The application's name, shown as the window/task title. A proper noun — translators normally leave it as \"BrainFrame\"."
+  },
+
+  "startupOpening": "Opening BrainFrame",
+  "@startupOpening": {
+    "description": "Screen-reader label for the launch spinner shown while the initial engram is resolving."
+  },
+
+  "startupOpenError": "Could not open your engrams.",
+  "@startupOpenError": {
+    "description": "Message shown when the app fails to resolve any engram at startup."
+  },
+
+  "switcherCurrentEngram": "Current engram {name}. Switch engram",
+  "@switcherCurrentEngram": {
+    "description": "Accessibility label for the sidebar-footer button that opens the engram switcher.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Personal" }
+    }
+  },
+
+  "switcherReadOnly": "Read-only",
+  "@switcherReadOnly": {
+    "description": "Accessibility label on the lock icon marking the current engram as read-only (e.g. a built-in engram)."
+  },
+
+  "switcherHeading": "Engrams",
+  "@switcherHeading": {
+    "description": "Heading at the top of the engram switcher sheet, above the list of engrams."
+  },
+
+  "switcherUnavailable": "Unavailable — reconnect coming soon",
+  "@switcherUnavailable": {
+    "description": "Subtitle on a switcher row for an engram whose folder could not be resolved; reconnecting is not yet implemented."
+  },
+
+  "switcherNewEngram": "New engram",
+  "@switcherNewEngram": {
+    "description": "Label for the action that creates a new engram — used both as the switcher row and the create-dialog title."
+  },
+
+  "switcherOpenFolder": "Open folder…",
+  "@switcherOpenFolder": {
+    "description": "Switcher action (desktop only) that opens an existing folder as an engram. The trailing ellipsis signals a dialog follows."
+  },
+
+  "newEngramNameLabel": "Name",
+  "@newEngramNameLabel": {
+    "description": "Text-field label in the new-engram dialog, where the user types the engram's name."
+  },
+
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Generic dialog button that dismisses without acting."
+  },
+
+  "create": "Create",
+  "@create": {
+    "description": "Confirm button in the new-engram dialog that creates the engram."
+  },
+
+  "helpTitle": "Help",
+  "@helpTitle": {
+    "description": "The help feature's name — used as the app-bar action tooltip and the help overlay's header."
+  },
+
+  "helpIndex": "Index",
+  "@helpIndex": {
+    "description": "Button in the help overlay that returns to the help index from a sub-page."
+  },
+
+  "helpClose": "Close help",
+  "@helpClose": {
+    "description": "Tooltip on the button that closes the help overlay."
+  },
+
+  "browserLoading": "Loading engram",
+  "@browserLoading": {
+    "description": "Screen-reader label for the spinner shown while the active engram's files are loading."
+  },
+
+  "browserUnreadable": "Could not read this engram.",
+  "@browserUnreadable": {
+    "description": "Message shown in the reader pane when the active engram's file list cannot be read."
+  },
+
+  "engramEmpty": "This engram has no files yet.",
+  "@engramEmpty": {
+    "description": "Empty-state message shown when an engram contains no visible files (in both the file tree and the reader pane)."
+  },
+
+  "browserSelectFile": "Select a file to read it.",
+  "@browserSelectFile": {
+    "description": "Prompt shown in the reader pane when the engram has files but none is selected."
+  },
+
+  "menuOpenBrowser": "Open file browser",
+  "@menuOpenBrowser": {
+    "description": "Tooltip on the phone-layout menu button that opens the file-browser drawer."
+  },
+
+  "drawerCloseBrowser": "Close file browser",
+  "@drawerCloseBrowser": {
+    "description": "Accessibility label on the scrim that closes the file-browser drawer when tapped."
+  },
+
+  "resizeHandleLabel": "Resize file browser",
+  "@resizeHandleLabel": {
+    "description": "Accessibility label for the draggable divider that resizes the sidebar."
+  },
+
+  "resizeHandleWidth": "{width} pixels wide",
+  "@resizeHandleWidth": {
+    "description": "Screen-reader value announcing the sidebar's current width for the resize slider.",
+    "placeholders": {
+      "width": { "type": "int", "example": "260" }
+    }
+  },
+
+  "fileTreeFolder": "Folder {name}",
+  "@fileTreeFolder": {
+    "description": "Accessibility label for a folder row in the file tree.",
+    "placeholders": {
+      "name": { "type": "String", "example": "notes" }
+    }
+  },
+
+  "fileTreeFile": "File {name}",
+  "@fileTreeFile": {
+    "description": "Accessibility label for a file row in the file tree.",
+    "placeholders": {
+      "name": { "type": "String", "example": "welcome.md" }
+    }
+  },
+
+  "readerLoading": "Loading file",
+  "@readerLoading": {
+    "description": "Screen-reader label for the spinner shown while a file's contents load in the reader."
+  },
+
+  "readerFilePath": "File path: {path}",
+  "@readerFilePath": {
+    "description": "Accessibility label for the file-path breadcrumb above the rendered markdown.",
+    "placeholders": {
+      "path": { "type": "String", "example": "notes/first-note.md" }
+    }
+  },
+
+  "readerOpenError": "Could not open “{path}”.",
+  "@readerOpenError": {
+    "description": "Message shown in the reader when a selected file cannot be read.",
+    "placeholders": {
+      "path": { "type": "String", "example": "notes/first-note.md" }
+    }
   }
 }

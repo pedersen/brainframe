@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/gen/app_localizations.dart';
 import '../engram.dart';
 import 'markdown_reader.dart';
 
@@ -62,6 +63,7 @@ class _HelpOverlayState extends State<_HelpOverlay> {
   }
 
   Widget _header(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       child: Row(
@@ -71,18 +73,19 @@ class _HelpOverlayState extends State<_HelpOverlay> {
           Expanded(
             child: Semantics(
               header: true,
-              child: Text('Help', style: Theme.of(context).textTheme.titleMedium),
+              child:
+                  Text(l10n.helpTitle, style: Theme.of(context).textTheme.titleMedium),
             ),
           ),
           // Let the user jump back to the help index from a sub-page.
           if (_path != _entryFile)
             TextButton(
               onPressed: () => setState(() => _path = _entryFile),
-              child: const Text('Index'),
+              child: Text(l10n.helpIndex),
             ),
           IconButton(
             icon: const Icon(Icons.close),
-            tooltip: 'Close help',
+            tooltip: l10n.helpClose,
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],

@@ -6,6 +6,8 @@ import 'package:brainframe/engram/ui/markdown_reader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/localized_app.dart';
+
 /// A tiny in-memory store for reader tests.
 class _MapStore extends EngramStore {
   _MapStore(this.files);
@@ -25,7 +27,7 @@ class _MapStore extends EngramStore {
   Future<void> writeBytes(String path, Uint8List bytes) async {}
 }
 
-Widget _host(Widget child) => MaterialApp(home: Scaffold(body: child));
+Widget _host(Widget child) => localizedApp(home: Scaffold(body: child));
 
 void main() {
   group('resolveIntraEngramLink', () {

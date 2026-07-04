@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/gen/app_localizations.dart';
 import 'file_tree_node.dart';
 
 /// The read-only file browser: a shallow folder tree over an engram's files.
@@ -84,7 +85,7 @@ class _FileTreeState extends State<FileTree> {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            'This engram has no files yet.',
+            AppLocalizations.of(context).engramEmpty,
             style: Theme.of(context).textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),
@@ -290,7 +291,7 @@ class _FolderRow extends StatelessWidget {
     return Semantics(
       button: true,
       expanded: expanded,
-      label: 'Folder ${node.name}',
+      label: AppLocalizations.of(context).fileTreeFolder(node.name),
       child: InkWell(
         onTap: onTap,
         child: ConstrainedBox(
@@ -345,7 +346,7 @@ class _FileRow extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: 'File ${node.name}',
+      label: AppLocalizations.of(context).fileTreeFile(node.name),
       child: InkWell(
         onTap: onTap,
         child: ConstrainedBox(

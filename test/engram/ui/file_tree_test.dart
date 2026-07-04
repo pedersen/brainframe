@@ -3,8 +3,10 @@ import 'package:brainframe/engram/ui/file_tree_node.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/localized_app.dart';
+
 Widget _host(Widget child) =>
-    MaterialApp(home: Scaffold(body: SizedBox(width: 280, child: child)));
+    localizedApp(home: Scaffold(body: SizedBox(width: 280, child: child)));
 
 void main() {
   testWidgets('renders folders and files; folders start expanded',
@@ -18,6 +20,25 @@ void main() {
     expect(find.text('welcome.md'), findsOneWidget);
     expect(find.text('notes'), findsOneWidget);
     expect(find.text('first.md'), findsOneWidget); // visible: expanded default
+  });
+
+  testWidgets('folder and file rows carry localized semantics labels',
+      (tester) async {
+    // Exercises the placeholder-bearing AppLocalizations getters
+    // (fileTreeFolder/fileTreeFile) end to end: the English ARB interpolates
+    // the node name into the accessibility label a screen reader announces.
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(_host(FileTree(
+      nodes: buildFileTree(['welcome.md', 'notes/first.md']),
+      selectedPath: null,
+      onSelectFile: (_) {},
+    )));
+
+    // RegExp (substring) match: the row merges the localized label with the
+    // child filename text, so the effective label contains, not equals, it.
+    expect(find.bySemanticsLabel(RegExp('Folder notes')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('File welcome.md')), findsOneWidget);
+    handle.dispose();
   });
 
   testWidgets('tapping a folder collapses and expands it', (tester) async {
