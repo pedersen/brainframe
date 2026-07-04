@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 
 import 'engram/engram_repository.dart';
@@ -6,6 +7,19 @@ import 'engram/ui/engram_browser.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'theme/app_settings.dart';
 import 'theme/app_theme.dart';
+
+/// The locales the app resolves the device against. The pseudo-locale (`en_XA`)
+/// is a development/testing aid — it accents and pads every string to surface
+/// hardcoded or overflow-prone text — so it is dropped from **release** builds
+/// and real users never resolve to it. Parameterized on [releaseMode] (default
+/// the ambient [kReleaseMode]) purely so both branches are testable.
+List<Locale> appSupportedLocales({bool releaseMode = kReleaseMode}) {
+  if (!releaseMode) return AppLocalizations.supportedLocales;
+  return AppLocalizations.supportedLocales
+      .where((locale) =>
+          !(locale.languageCode == 'en' && locale.countryCode == 'XA'))
+      .toList();
+}
 
 /// The BrainFrame application root.
 ///
@@ -36,7 +50,7 @@ class BrainFrameApp extends StatelessWidget {
           onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
           debugShowCheckedModeBanner: false,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
+          supportedLocales: appSupportedLocales(),
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           // MaterialApp switches to these automatically when the platform
