@@ -9,6 +9,14 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  # Enables the in-repo custom_lint plugin (tool/lints), whose
+  # no_raw_widget_strings rule flags hardcoded user-facing strings in the IDE.
+  # custom_lint issues surface in the IDE and via `dart run custom_lint`, not
+  # `flutter analyze`; the commit/CI backstop is tool/check_l10n.dart.
+  plugins:
+    - custom_lint
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
