@@ -140,6 +140,67 @@ void main() {
       expect(find.textContaining('Could not open'), findsOneWidget);
       expect(find.byType(Image), findsNothing);
     });
+
+    testWidgets('starts fitted (BoxFit.contain, no scroll view)',
+        (tester) async {
+      await tester.pumpWidget(_host(
+        ImageFileViewer(
+          store: _MapStore({'diagram.png': _onePixelPng}),
+          path: 'diagram.png',
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Image>(find.byType(Image)).fit, BoxFit.contain);
+      expect(find.byType(SingleChildScrollView), findsNothing);
+    });
+
+    testWidgets('toggles to actual size (natural size, scroll bars) and back',
+        (tester) async {
+      await tester.pumpWidget(_host(
+        ImageFileViewer(
+          store: _MapStore({'diagram.png': _onePixelPng}),
+          path: 'diagram.png',
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      // The one button in the viewer flips the mode.
+      await tester.tap(find.byType(IconButton));
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Image>(find.byType(Image)).fit, isNull);
+      // Two nested scroll views -> a two-axis scrollable, each with a Scrollbar.
+      expect(find.byType(SingleChildScrollView), findsNWidgets(2));
+      expect(find.byType(Scrollbar), findsNWidgets(2));
+
+      // Flip back to fitted.
+      await tester.tap(find.byType(IconButton));
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Image>(find.byType(Image)).fit, BoxFit.contain);
+      expect(find.byType(SingleChildScrollView), findsNothing);
+    });
+
+    testWidgets('resets to fitted when switched to a different image',
+        (tester) async {
+      final store = _MapStore({'a.png': _onePixelPng, 'b.png': _onePixelPng});
+      await tester
+          .pumpWidget(_host(ImageFileViewer(store: store, path: 'a.png')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(IconButton)); // into actual size
+      await tester.pumpAndSettle();
+      expect(find.byType(SingleChildScrollView), findsNWidgets(2));
+
+      // Reuse the same State (same tree position) with a different path.
+      await tester
+          .pumpWidget(_host(ImageFileViewer(store: store, path: 'b.png')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('b.png'), findsOneWidget);
+      expect(find.byType(SingleChildScrollView), findsNothing); // back to fitted
+    });
   });
 
   group('UnsupportedFileViewer', () {

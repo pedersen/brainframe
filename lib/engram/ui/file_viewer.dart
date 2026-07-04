@@ -65,29 +65,67 @@ Widget buildFileViewer({
 }
 
 /// Views one raster image from an engram: reads [path] as bytes and renders it
-/// scaled to fit under the shared file-path breadcrumb.
+/// under the shared file-path breadcrumb, in one of two modes the user toggles
+/// from a header button.
+///
+/// - **Fit to window** (default): scaled to fill the pane, so a whole image is
+///   visible at a glance — the right default for small images and thumbnails.
+/// - **Actual size**: the image at its natural pixel size, with scroll bars in
+///   both axes when it overflows — needed to inspect detail in large images the
+///   fitted view would shrink.
 ///
 /// The image is exposed to screen readers via a generated label (the file has
 /// no alt text of its own); a decode failure falls back to the same
 /// unreadable-file message as a read failure.
-class ImageFileViewer extends StatelessWidget {
+class ImageFileViewer extends StatefulWidget {
   const ImageFileViewer({super.key, required this.store, required this.path});
 
   final EngramStore store;
   final String path;
 
   @override
+  State<ImageFileViewer> createState() => _ImageFileViewerState();
+}
+
+class _ImageFileViewerState extends State<ImageFileViewer> {
+  /// False = scaled to fit the pane; true = natural pixel size with scroll bars.
+  bool _actualSize = false;
+
+  // Separate controllers for the two nested scroll views used in actual-size
+  // mode, so each axis has its own scroll bar.
+  final ScrollController _vertical = ScrollController();
+  final ScrollController _horizontal = ScrollController();
+
+  @override
+  void didUpdateWidget(ImageFileViewer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A new image starts fitted, so switching files never lands the user
+    // scrolled into the middle of the previous (differently sized) image.
+    if (oldWidget.path != widget.path && _actualSize) {
+      _actualSize = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _vertical.dispose();
+    _horizontal.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<Uint8List>(
       // Keyed on path so selecting another image re-reads rather than reusing
       // the previous file's future.
-      key: ValueKey(path),
-      future: store.readBytes(path),
+      key: ValueKey(widget.path),
+      future: widget.store.readBytes(widget.path),
       builder: (context, snapshot) {
         final l10n = AppLocalizations.of(context);
         if (snapshot.hasError) {
           return Center(
-            child: Text(l10n.readerOpenError(path), textAlign: TextAlign.center),
+            child: Text(l10n.readerOpenError(widget.path),
+                textAlign: TextAlign.center),
           );
         }
         if (!snapshot.hasData) {
@@ -110,22 +148,58 @@ class ImageFileViewer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FilePathBreadcrumb(path: path),
-          const SizedBox(height: 12),
-          Expanded(
-            child: Center(
-              child: Image.memory(
-                bytes,
-                fit: BoxFit.contain,
-                semanticLabel: l10n.viewerImageLabel(_fileName(path)),
-                errorBuilder: (context, error, stack) => Text(
-                  l10n.readerOpenError(path),
-                  textAlign: TextAlign.center,
-                ),
+          Row(
+            children: [
+              Expanded(child: FilePathBreadcrumb(path: widget.path)),
+              IconButton(
+                icon: Icon(
+                    _actualSize ? Icons.fullscreen_exit : Icons.fullscreen),
+                tooltip: _actualSize
+                    ? l10n.viewerImageFitToWindow
+                    : l10n.viewerImageActualSize,
+                onPressed: () => setState(() => _actualSize = !_actualSize),
               ),
-            ),
+            ],
           ),
+          const SizedBox(height: 12),
+          Expanded(child: _image(context, bytes)),
         ],
+      ),
+    );
+  }
+
+  /// The image itself, laid out per the current mode.
+  Widget _image(BuildContext context, Uint8List bytes) {
+    final l10n = AppLocalizations.of(context);
+    final image = Image.memory(
+      bytes,
+      // No `fit` in actual-size mode: render at natural pixel size and let the
+      // scroll views handle any overflow.
+      fit: _actualSize ? null : BoxFit.contain,
+      semanticLabel: l10n.viewerImageLabel(_fileName(widget.path)),
+      errorBuilder: (context, error, stack) => Text(
+        l10n.readerOpenError(widget.path),
+        textAlign: TextAlign.center,
+      ),
+    );
+    if (!_actualSize) return Center(child: image);
+
+    // Two nested single-axis scroll views give a two-axis scrollable, each with
+    // its own always-visible scroll bar (no hover on e-ink or touch).
+    return Scrollbar(
+      controller: _vertical,
+      thumbVisibility: true,
+      child: SingleChildScrollView(
+        controller: _vertical,
+        child: Scrollbar(
+          controller: _horizontal,
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: _horizontal,
+            scrollDirection: Axis.horizontal,
+            child: image,
+          ),
+        ),
       ),
     );
   }
