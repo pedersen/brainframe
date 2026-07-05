@@ -41,5 +41,7 @@
   "saveStatusSaving": "[Šávíñǵ…~~~]",
   "saveStatusUnsaved": "[Úñšávéđ çħáñǵéš~~~~~~]",
   "saveStatusError": "[Çóúłđñ’ŧ šávé~~~~~]",
-  "saveNowTooltip": "[Šávé ñóŵ~~~]"
+  "saveNowTooltip": "[Šávé ñóŵ~~~]",
+  "newNote": "[Ñéŵ ñóŧé~~~]",
+  "newNoteNameLabel": "[Ñóŧé ñáɱé~~~]"
 }

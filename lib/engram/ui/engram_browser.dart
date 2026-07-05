@@ -9,6 +9,7 @@ import '../../widgets/app_scaffold.dart';
 import '../asset_engram_store.dart';
 import '../built_in_engrams.dart';
 import '../engram.dart';
+import '../engram_file_ops.dart';
 import '../engram_repository.dart';
 import '../engram_scope.dart';
 import '../engram_store.dart';
@@ -251,6 +252,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
       engram: engram,
       repository: widget.repository,
       tree: tree,
+      onNewNote: engram.readOnly ? null : _newNote,
     );
     final reader = _reader(
       l10n: l10n,
@@ -329,6 +331,32 @@ class _EngramBrowserState extends State<EngramBrowser> {
         _drawerOpen = false;
       });
 
+  /// Prompts for a name and creates a new top-level Markdown note, seeded with
+  /// an H1 derived from the name, then selects it (opening it in Edit) and
+  /// closes the drawer. A collision with an existing note is avoided with the
+  /// same "Name", "Name 2" numbering the store uses for folders.
+  Future<void> _newNote() async {
+    final store = _contentStore;
+    if (store == null) return;
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => const _NewNoteDialog(),
+    );
+    if (name == null || !mounted) return; // cancelled
+
+    final existingStems = <String>{
+      for (final path in await store.list())
+        if (!path.contains('/') && path.toLowerCase().endsWith('.md'))
+          path.substring(0, path.length - '.md'.length),
+    };
+    final stem = EngramFileOps.freeName(_noteStem(name), existingStems);
+    final notePath = '$stem.md';
+    await store.writeString(notePath, '# ${_noteTitle(stem)}\n');
+    if (!mounted) return;
+    setState(() => _drawerOpen = false);
+    _refresh(selectPath: notePath);
+  }
+
   /// The file to show: the user's selection when it belongs to [paths],
   /// otherwise a sensible default (a welcome/index file, else the first).
   String? _effectiveSelection(List<String> paths) {
@@ -345,6 +373,72 @@ class _EngramBrowserState extends State<EngramBrowser> {
 
 String _fileName(String path) => path.split('/').last;
 
+/// A filesystem-safe note filename stem from a user-entered [name]: path
+/// separators become dashes, runs of whitespace collapse, and a blank name
+/// falls back to "Untitled". The `.md` extension is added by the caller.
+String _noteStem(String name) {
+  final cleaned = name
+      .replaceAll(RegExp(r'[\\/]+'), '-')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  return cleaned.isEmpty ? 'Untitled' : cleaned;
+}
+
+/// The H1 title seeded into a new note, derived from its filename [stem]:
+/// dashes/underscores become spaces and each word is capitalized, so
+/// `the-beginning-of-infinity` reads as `The Beginning Of Infinity`.
+String _noteTitle(String stem) {
+  final words = stem
+      .replaceAll(RegExp(r'[-_]+'), ' ')
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty);
+  return words
+      .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+      .join(' ');
+}
+
+/// The name-prompt dialog for a new note. Pops its text on submit (Create or the
+/// keyboard action), or null on Cancel.
+class _NewNoteDialog extends StatefulWidget {
+  const _NewNoteDialog();
+
+  @override
+  State<_NewNoteDialog> createState() => _NewNoteDialogState();
+}
+
+class _NewNoteDialogState extends State<_NewNoteDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(_controller.text);
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog.adaptive(
+      title: Text(l10n.newNote),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(labelText: l10n.newNoteNameLabel),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        TextButton(onPressed: _submit, child: Text(l10n.create)),
+      ],
+    );
+  }
+}
+
 /// The active engram's loaded browser state: its file list and the collapsed
 /// folders restored from this device's saved preference.
 class _BrowserData {
@@ -354,17 +448,22 @@ class _BrowserData {
   final Set<String> collapsed;
 }
 
-/// The sidebar: the file [tree] above a footer that switches engrams.
+/// The sidebar: an optional action header, the file [tree], and a footer that
+/// switches engrams.
 class _Sidebar extends StatelessWidget {
   const _Sidebar({
     required this.engram,
     required this.repository,
     required this.tree,
+    this.onNewNote,
   });
 
   final Engram engram;
   final EngramRepository repository;
   final Widget tree;
+
+  /// Creates a new note; null for a read-only engram, which shows no header.
+  final VoidCallback? onNewNote;
 
   @override
   Widget build(BuildContext context) {
@@ -375,11 +474,37 @@ class _Sidebar extends StatelessWidget {
         right: false,
         child: Column(
           children: [
+            if (onNewNote != null) _SidebarHeader(onNewNote: onNewNote!),
             Expanded(child: tree),
             const Divider(height: 1),
             EngramSwitcher(repository: repository, current: engram),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The sidebar's file-management action header (writable engrams only).
+class _SidebarHeader extends StatelessWidget {
+  const _SidebarHeader({required this.onNewNote});
+
+  final VoidCallback onNewNote;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Row(
+        children: [
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.note_add_outlined),
+            tooltip: l10n.newNote,
+            onPressed: onNewNote,
+          ),
+        ],
       ),
     );
   }

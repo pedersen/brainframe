@@ -12,6 +12,7 @@ import 'package:brainframe/engram/ui/markdown_editor_pane.dart';
 import 'package:brainframe/engram/ui/markdown_reader.dart';
 import 'package:brainframe/theme/app_settings.dart';
 import 'package:brainframe/theme/design_language.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -413,6 +414,122 @@ void main() {
       await tester.pumpAndSettle();
       controller.refresh(selectPath: 'anything.md'); // must not throw
       await tester.pumpAndSettle();
+    });
+  });
+
+  group('new note', () {
+    // AlertDialog.adaptive renders the Cupertino variant (CupertinoTextField)
+    // on Apple platforms; the reset keeps this override from leaking.
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    Engram writable(EngramStore store) =>
+        Engram(id: 'w', displayName: 'W', readOnly: false, store: store);
+
+    // The dialog's field, distinct from the editor pane's own TextField.
+    Finder dialogField() => find.descendant(
+        of: find.byType(Dialog), matching: find.byType(TextField));
+
+    // Pump the browser over a writable [store]. The platform is forced Material
+    // *before* pumping so the MaterialApp theme bakes it in and AlertDialog uses
+    // a plain TextField; once baked, the override is reset (testWidgets checks
+    // foundation debug vars are unset before tearDown runs).
+    Future<void> pumpBrowser(WidgetTester tester, EngramStore store) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      setWidth(tester, 1000);
+      await tester.pumpWidget(harnessFor(repo(), writable(store)));
+      await tester.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+    }
+
+    Future<void> openDialog(WidgetTester tester) async {
+      await tester.tap(find.byTooltip('New note'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300)); // dialog transition
+    }
+
+    testWidgets('a read-only engram shows no New note action', (tester) async {
+      setWidth(tester, 1000);
+      await tester.pumpWidget(harness(repo())); // tutorial: read-only
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('New note'), findsNothing);
+    });
+
+    testWidgets('creates a note with a derived H1 and opens it in the editor',
+        (tester) async {
+      final store = _RwStore({}); // empty writable engram
+      await pumpBrowser(tester, store);
+
+      await openDialog(tester);
+      await tester.enterText(dialogField(), 'My Great Idea');
+      await tester.tap(find.text('Create'));
+      await tester.pumpAndSettle();
+
+      expect(store.files['My Great Idea.md'], '# My Great Idea\n');
+      final pane =
+          tester.widget<MarkdownEditorPane>(find.byType(MarkdownEditorPane));
+      expect(pane.path, 'My Great Idea.md');
+    });
+
+    testWidgets('title-cases an H1 from a dashed name', (tester) async {
+      final store = _RwStore({});
+      await pumpBrowser(tester, store);
+
+      await openDialog(tester);
+      await tester.enterText(dialogField(), 'the-beginning-of-infinity');
+      await tester.tap(find.text('Create'));
+      await tester.pumpAndSettle();
+
+      expect(store.files['the-beginning-of-infinity.md'],
+          '# The Beginning Of Infinity\n');
+    });
+
+    testWidgets('a blank name falls back to Untitled', (tester) async {
+      final store = _RwStore({});
+      await pumpBrowser(tester, store);
+
+      await openDialog(tester);
+      await tester.enterText(dialogField(), '   ');
+      await tester.tap(find.text('Create'));
+      await tester.pumpAndSettle();
+
+      expect(store.files['Untitled.md'], '# Untitled\n');
+    });
+
+    testWidgets('avoids colliding with an existing note', (tester) async {
+      final store = _RwStore({'Note.md': '# Note'});
+      await pumpBrowser(tester, store);
+
+      await openDialog(tester);
+      await tester.enterText(dialogField(), 'Note');
+      await tester.tap(find.text('Create'));
+      await tester.pumpAndSettle();
+
+      expect(store.files['Note 2.md'], '# Note 2\n');
+    });
+
+    testWidgets('submitting from the keyboard creates the note',
+        (tester) async {
+      final store = _RwStore({});
+      await pumpBrowser(tester, store);
+
+      await openDialog(tester);
+      await tester.enterText(dialogField(), 'Keyboard Note');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(store.files['Keyboard Note.md'], '# Keyboard Note\n');
+    });
+
+    testWidgets('Cancel creates nothing', (tester) async {
+      final store = _RwStore({});
+      await pumpBrowser(tester, store);
+
+      await openDialog(tester);
+      await tester.enterText(dialogField(), 'Nope');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(store.files, isEmpty);
     });
   });
 }
