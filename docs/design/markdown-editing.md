@@ -109,17 +109,26 @@ forward-slashed paths, consistent with the existing `list`/`readBytes`/
 | `delete(path)` | Remove the file at `path`. |
 | `move(from, to)` | Move/rename a file. |
 | `createDirectory(path)` | Create an (empty) directory shell. |
+| `deleteDirectory(path)` | Remove an empty directory shell. |
+| `listDirectories()` | List directory paths, including empty ones. |
 
-- **Read-only stores throw `UnsupportedError`**, exactly as `writeBytes` does
-  today; callers gate on `Engram.readOnly` and never catch. The asset-backed
-  built-in engrams (`AssetEngramStore`) stay unwritable.
+- **Read-only stores throw `UnsupportedError`** from the mutations, exactly as
+  `writeBytes` does today; callers gate on `Engram.readOnly` and never catch.
+  The asset-backed built-in engrams (`AssetEngramStore`) stay unwritable, and
+  report no standalone directories. The mutations default to that read-only
+  behavior on the base contract, and `listDirectories` defaults to none, so a
+  partial or read-only backend need not restate them.
 - **`FileSystemEngramStore`** implements them with `dart:io`, reusing its
   `_resolve` guard (rejects absolute paths and `..` escapes) and its refusal to
   touch the `.brainframe` marker
   ([lib/engram/fs/fs_store_io.dart](../../lib/engram/fs/fs_store_io.dart)).
-- **`createDirectory` earns its place** because folders are otherwise implicit
-  in the filesystem (a file write creates its parents), but "new empty folder"
-  and the destination shell of a folder rename need an explicit directory.
+- **`createDirectory` / `deleteDirectory` / `listDirectories` earn their place**
+  because folders are otherwise implicit in the filesystem (a file write creates
+  its parents, and `list` only reports files). An *empty* folder — one the user
+  made but has not filled — would be invisible and unmanageable without them:
+  `createDirectory` makes it, `listDirectories` reveals it so the browser can
+  show it, and `deleteDirectory` removes the shell a folder delete or move
+  leaves behind.
 
 Alongside these, **`writeBytes` becomes atomic** in `FileSystemEngramStore` —
 write to a sibling temp file, then `rename` into place — so every write, not
@@ -130,15 +139,27 @@ the FS implementation's durability improves.
 ### Folders compose over file primitives
 
 Folder rename/move/delete are **not** new store methods. A small service,
-`EngramFileOps`, enumerates a folder's descendants via `store.list()` and
-applies per-file `move`/`delete`, plus `createDirectory` for the destination.
-Keeping the store contract at the file level keeps every backend (asset,
-filesystem, future) small, and keeps folder semantics in one tested place.
+`EngramFileOps`, enumerates a folder's descendant files via `store.list()` and
+its directories via `store.listDirectories()`, then composes the folder
+operation over the file-and-directory primitives:
 
-Collision-safe naming ("Untitled", then "Untitled 2", …) reuses the existing
-`_safeFolderName` / `_freeChildLocation` pattern already in
-[lib/engram/fs/fs_store_io.dart](../../lib/engram/fs/fs_store_io.dart) rather
-than inventing a second scheme.
+- **Move / rename:** recreate the destination shell and every subfolder with
+  `createDirectory` (so *empty* subfolders survive the move), `move` each
+  descendant file into the mirrored path, then `deleteDirectory` the emptied
+  source shells deepest-first.
+- **Delete:** `delete` every descendant file, then `deleteDirectory` the emptied
+  shells deepest-first, including the folder itself.
+
+Keeping the store contract at the file-and-directory level keeps every backend
+(asset, filesystem, future) small, and keeps folder semantics in one tested
+place.
+
+Collision-safe naming ("Untitled", then "Untitled 2", …) lives in
+`EngramFileOps.freeName`, mirroring the numbering the filesystem store already
+uses (`_safeFolderName` / `_freeChildLocation` in
+[lib/engram/fs/fs_store_io.dart](../../lib/engram/fs/fs_store_io.dart)) rather
+than inventing a second scheme, and is shared by new-note / new-folder creation
+and move destinations.
 
 ## The editing surface (a swappable seam)
 
