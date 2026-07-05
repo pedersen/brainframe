@@ -42,11 +42,42 @@ const double _resizeStep = 24;
 /// menu button, over a scrim. Selecting a file opens it in the reader (and, on
 /// a phone, closes the drawer). This is the structure-only Step 8 UI — the
 /// design handoff's bespoke styling is deferred.
+/// A handle file-management actions use to ask the browser to re-list the
+/// active engram after a mutation (new note/folder, rename, delete, move) and,
+/// optionally, to select a path once the fresh listing loads.
+///
+/// The mutation itself happens through the store and `EngramFileOps`; this only
+/// invalidates the browser's cached listing so the tree, the default selection,
+/// and link resolution reflect the new state. Attach one via
+/// [EngramBrowser.controller] — the standard controller idiom, like
+/// `ScrollController`. Attaching the same instance to two browsers at once is a
+/// usage error.
+class EngramBrowserController {
+  _EngramBrowserState? _state;
+
+  void _attach(_EngramBrowserState state) {
+    assert(_state == null, 'EngramBrowserController is already attached');
+    _state = state;
+  }
+
+  void _detach(_EngramBrowserState state) {
+    if (_state == state) _state = null;
+  }
+
+  /// Re-lists the active engram. When [selectPath] is given (typically a
+  /// just-created note), it becomes the selection once the new listing loads;
+  /// otherwise the current selection stands, falling back through the browser's
+  /// default when the selected file no longer exists (e.g. after a delete).
+  void refresh({String? selectPath}) =>
+      _state?._refresh(selectPath: selectPath);
+}
+
 class EngramBrowser extends StatefulWidget {
   const EngramBrowser({
     super.key,
     required this.repository,
     this.preferences,
+    this.controller,
   });
 
   /// Supplies the engram switcher its list of engrams and create/adopt actions.
@@ -55,6 +86,10 @@ class EngramBrowser extends StatefulWidget {
   /// Device-local view state (sidebar width, per-engram collapsed folders).
   /// Injectable for tests; defaults to the app's shared preferences store.
   final BrowserPreferences? preferences;
+
+  /// Optional seam for file-management actions to trigger a re-list after a
+  /// store mutation. Null when nothing needs to invalidate the listing.
+  final EngramBrowserController? controller;
 
   @override
   State<EngramBrowser> createState() => _EngramBrowserState();
@@ -81,6 +116,38 @@ class _EngramBrowserState extends State<EngramBrowser> {
   /// content read so a built-in engram serves the localized page (falling back
   /// to English per file). A no-op for filesystem engrams.
   EngramStore? _contentStore;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?._attach(this);
+  }
+
+  @override
+  void didUpdateWidget(EngramBrowser oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?._detach(this);
+      widget.controller?._attach(this);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?._detach(this);
+    super.dispose();
+  }
+
+  /// Re-issues the active engram's listing after a mutation, optionally moving
+  /// the selection to [selectPath]. Invoked through [EngramBrowserController];
+  /// only called once the engram has loaded, so [_contentStore] is set.
+  void _refresh({String? selectPath}) {
+    final engram = EngramScope.of(context).engram;
+    setState(() {
+      if (selectPath != null) _selectedPath = selectPath;
+      _data = _load(engram, _contentStore!);
+    });
+  }
 
   @override
   void didChangeDependencies() {
