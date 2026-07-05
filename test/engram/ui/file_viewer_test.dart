@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:brainframe/engram/engram_store.dart';
 import 'package:brainframe/engram/ui/file_viewer.dart';
+import 'package:brainframe/engram/ui/markdown_editor_pane.dart';
 import 'package:brainframe/engram/ui/markdown_reader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -95,6 +96,34 @@ void main() {
         find.textContaining('plain text note', findRichText: true),
         findsWidgets,
       );
+    });
+
+    testWidgets('markdown defaults to read-only (no editor)', (tester) async {
+      await tester.pumpWidget(
+        _host(buildFileViewer(store: store, path: 'welcome.md')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(MarkdownReader), findsOneWidget);
+      expect(find.byType(MarkdownEditorPane), findsNothing);
+    });
+
+    testWidgets('writable markdown routes to the editor pane', (tester) async {
+      await tester.pumpWidget(
+        _host(buildFileViewer(
+            store: store, path: 'welcome.md', readOnly: false)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(MarkdownEditorPane), findsOneWidget);
+      expect(find.byType(MarkdownReader), findsNothing);
+    });
+
+    testWidgets('readOnly:false does not affect images', (tester) async {
+      await tester.pumpWidget(
+        _host(buildFileViewer(
+            store: store, path: 'diagram.png', readOnly: false)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(ImageFileViewer), findsOneWidget);
     });
 
     testWidgets('image routes to ImageFileViewer', (tester) async {

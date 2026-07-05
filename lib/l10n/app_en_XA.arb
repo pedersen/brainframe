@@ -33,5 +33,13 @@
   "viewerUnsupportedFormat": "[Çáñ’ŧ đíšþłáý “{name}” ýéŧ.~~~~~~~]",
   "viewerImageActualSize": "[Víéŵ áŧ ƒúłł šížé~~~~~~]",
   "viewerImageFitToWindow": "[Ƒíŧ íɱáǵé ŧó ŵíñđóŵ~~~~~~]",
-  "markdownEditorLabel": "[Ḿáŕķđóŵñ éđíŧóŕ~~~~~~]"
+  "markdownEditorLabel": "[Ḿáŕķđóŵñ éđíŧóŕ~~~~~~]",
+  "editorModeGroupLabel": "[Éđíŧíñǵ ɱóđé~~~~]",
+  "editorModeEdit": "[Éđíŧ~~]",
+  "editorModePreview": "[Þŕévíéŵ~~~]",
+  "saveStatusSaved": "[Šávéđ~~]",
+  "saveStatusSaving": "[Šávíñǵ…~~~]",
+  "saveStatusUnsaved": "[Úñšávéđ çħáñǵéš~~~~~~]",
+  "saveStatusError": "[Çóúłđñ’ŧ šávé~~~~~]",
+  "saveNowTooltip": "[Šávé ñóŵ~~~]"
 }
