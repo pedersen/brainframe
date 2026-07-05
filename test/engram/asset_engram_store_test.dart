@@ -60,6 +60,14 @@ void main() {
       expect(() => store.move('welcome.md', 'moved.md'), throwsUnsupportedError);
       expect(() => store.createDirectory('folder'), throwsUnsupportedError);
     });
+
+    test('is read-only: deleteDirectory throws UnsupportedError', () {
+      expect(() => store.deleteDirectory('notes'), throwsUnsupportedError);
+    });
+
+    test('has no standalone directories: listDirectories is empty', () async {
+      expect(await store.listDirectories(), isEmpty);
+    });
   });
 
   group('AssetEngramStore over the bundled help engram', () {

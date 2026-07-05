@@ -60,12 +60,22 @@ accept-then-amend).
 
 ### Step 2 — `EngramFileOps` folder-composition service
 
-- New service composing folder rename/move/delete over the Step 1 file
-  primitives (enumerate descendants via `list()`; `createDirectory` for the
-  destination shell).
-- Collision-safe name helper shared with new-note/new-folder creation.
+- **Extend the store contract to be directory-aware** (decided during the
+  build): add `listDirectories()` (reveals empty folders; defaults to none) and
+  `deleteDirectory(path)` (the removal counterpart to `createDirectory`). This
+  resolves the "empty folder" question — a folder the user made but has not
+  filled is now enumerable, showable, and cleanable, instead of invisible to a
+  files-only `list()`. `FileSystemEngramStore` implements both; `AssetEngramStore`
+  reports no directories and throws `UnsupportedError` from `deleteDirectory`.
+- New `EngramFileOps` service composing folder rename/move/delete over the file
+  and directory primitives: recreate the destination tree (empty subfolders
+  included) with `createDirectory`, `move` descendant files, then
+  `deleteDirectory` emptied shells deepest-first.
+- Collision-safe name helper (`EngramFileOps.freeName`) shared with
+  new-note/new-folder creation and move destinations.
 - Pure-ish; tests use an in-memory `EngramStore` fake to cover folder rename
-  with nested content, delete-with-descendants, and name collisions.
+  with nested content, empty-subfolder preservation, delete-with-descendants,
+  shared-prefix isolation, and name collisions.
 
 ### Step 3 — `MarkdownSourceEditor` (the swappable seam)
 

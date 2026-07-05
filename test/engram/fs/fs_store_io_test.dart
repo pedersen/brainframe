@@ -207,6 +207,50 @@ void main() {
     test('createDirectory refuses the app-owned marker', () {
       expect(() => store.createDirectory('.brainframe'), throwsArgumentError);
     });
+
+    test('listDirectories reports every directory, including empty ones',
+        () async {
+      await store.writeString('notes/a.md', 'A');
+      await store.writeString('notes/sub/b.md', 'B');
+      await store.createDirectory('empty');
+      expect(
+        await store.listDirectories(),
+        unorderedEquals(['notes', 'notes/sub', 'empty']),
+      );
+    });
+
+    test('listDirectories excludes the app-owned marker directory', () async {
+      // createFileSystemEngram writes the .brainframe marker directory.
+      await createFileSystemEngram(location: loc, displayName: 'E');
+      await store.createDirectory('visible');
+      final dirs = await store.listDirectories();
+      expect(dirs, contains('visible'));
+      expect(dirs, isNot(contains('.brainframe')));
+    });
+
+    test('listDirectories is empty for a directory that does not exist yet', () {
+      expect(FileSystemEngramStore(locFor('missing')).listDirectories(),
+          completion(isEmpty));
+    });
+
+    test('deleteDirectory removes an empty directory', () async {
+      await store.createDirectory('gone');
+      await store.deleteDirectory('gone');
+      expect(await store.listDirectories(), isNot(contains('gone')));
+      expect(Directory('${loc.path}/gone').existsSync(), isFalse);
+    });
+
+    test('deleteDirectory of a non-empty directory throws', () async {
+      await store.writeString('full/a.md', 'A');
+      await expectLater(
+        () => store.deleteDirectory('full'),
+        throwsA(isA<FileSystemException>()),
+      );
+    });
+
+    test('deleteDirectory refuses the app-owned marker', () {
+      expect(() => store.deleteDirectory('.brainframe'), throwsArgumentError);
+    });
   });
 
   group('atomic writes (Decision 5)', () {

@@ -38,6 +38,15 @@ void main() {
     test('createDirectory throws UnsupportedError by default', () {
       expect(() => store.createDirectory('folder'), throwsUnsupportedError);
     });
+
+    test('deleteDirectory throws UnsupportedError by default', () {
+      expect(() => store.deleteDirectory('folder'), throwsUnsupportedError);
+    });
+  });
+
+  test('listDirectories defaults to none for backends without directories',
+      () async {
+    expect(await _ReadOnlyStore({'a.md': '# A'}).listDirectories(), isEmpty);
   });
 
   test('readString/writeString are conveniences over the byte methods',

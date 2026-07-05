@@ -125,6 +125,16 @@ class AssetEngramStore extends EngramStore {
     );
   }
 
+  @override
+  Future<void> deleteDirectory(String path) {
+    throw UnsupportedError(
+      'AssetEngramStore is read-only; cannot delete directory "$path".',
+    );
+  }
+
+  // listDirectories() inherits the base "no directories" default: the asset
+  // bundle exposes files by key and has no standalone empty-folder concept.
+
   /// BCP47-ish asset directory name for [locale]: `en`, `es_MX`, `en_XA`.
   static String _codeOf(Locale locale) => locale.countryCode == null
       ? locale.languageCode

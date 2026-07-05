@@ -49,6 +49,23 @@ class FileSystemEngramStore extends EngramStore {
   }
 
   @override
+  Future<List<String>> listDirectories() async {
+    final root = Directory(_rootPath);
+    if (!await root.exists()) return const [];
+    final paths = <String>[];
+    await for (final entity in root.list(recursive: true, followLinks: false)) {
+      if (entity is! Directory) continue;
+      final relative = _relativeOf(entity.path);
+      if (relative == markerDirectoryName ||
+          relative.startsWith('$markerDirectoryName/')) {
+        continue; // the marker is app-owned metadata, not engram content
+      }
+      paths.add(relative);
+    }
+    return paths;
+  }
+
+  @override
   Future<Uint8List> readBytes(String path) =>
       File(_resolve(path)).readAsBytes();
 
@@ -79,6 +96,15 @@ class FileSystemEngramStore extends EngramStore {
   Future<void> createDirectory(String path) async {
     _refuseMarker(path);
     await Directory(_resolve(path)).create(recursive: true);
+  }
+
+  @override
+  Future<void> deleteDirectory(String path) async {
+    _refuseMarker(path);
+    // Non-recursive: throws if the directory is missing or not empty, matching
+    // the contract. EngramFileOps empties a folder's files and deeper shells
+    // before removing it.
+    await Directory(_resolve(path)).delete();
   }
 
   /// Writes [bytes] to [file] atomically (Decision 5): write a sibling temp

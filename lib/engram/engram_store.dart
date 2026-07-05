@@ -10,11 +10,18 @@ import 'dart:typed_data';
 /// throw [UnsupportedError] from [writeBytes]; read-write stores (the
 /// filesystem) implement it.
 ///
-/// The remaining mutations — [delete], [move], [createDirectory] — default to a
-/// read-only store that throws [UnsupportedError], so a partial or read-only
-/// backend need not restate them; read-write stores override all three.
-/// Whether an engram is read-only is carried by `Engram.readOnly`, not asked of
-/// the store.
+/// The remaining mutations — [delete], [move], [createDirectory],
+/// [deleteDirectory] — default to a read-only store that throws
+/// [UnsupportedError], so a partial or read-only backend need not restate them;
+/// read-write stores override them. Whether an engram is read-only is carried
+/// by `Engram.readOnly`, not asked of the store.
+///
+/// **Directories are first-class for enumeration.** [list] returns files;
+/// [listDirectories] returns directory paths — including *empty* ones, which no
+/// file path would reveal — so a browser can show a folder the user made but
+/// has not filled yet, and folder operations can recreate and clean up shells.
+/// It defaults to none, for backends (the asset bundle) that have no standalone
+/// directory concept.
 ///
 /// **Bytes are the primitive.** Engrams hold binary content — images, PDFs,
 /// EPUBs — as first-class citizens alongside markdown, so the store speaks in
@@ -30,6 +37,15 @@ abstract class EngramStore {
   /// Paths use forward slashes on every platform and never begin with a
   /// leading slash. Order is unspecified.
   Future<List<String>> list();
+
+  /// Lists every directory as an engram-relative path, e.g. `notes` or
+  /// `notes/archive`, including empty directories that hold no files.
+  ///
+  /// Same path shape as [list] — forward slashes, no leading slash, order
+  /// unspecified — and never includes the app-owned marker tree. Defaults to
+  /// none for backends with no standalone directory concept; read-write stores
+  /// override it so "new empty folder" and folder cleanup are representable.
+  Future<List<String>> listDirectories() async => const [];
 
   /// Reads the raw bytes of the file at engram-relative [path].
   Future<Uint8List> readBytes(String path);
@@ -69,6 +85,17 @@ abstract class EngramStore {
   /// [UnsupportedError]; read-write stores override it.
   Future<void> createDirectory(String path) => throw UnsupportedError(
         'This store is read-only; cannot create directory "$path".',
+      );
+
+  /// Removes the directory at engram-relative [path], which must be empty.
+  ///
+  /// The removal counterpart to [createDirectory]. Folder composition (see
+  /// `EngramFileOps`) deletes descendant files first, then removes the emptied
+  /// directory shells deepest-first. Removing a missing or non-empty directory
+  /// is an error, surfaced by the backend. Defaults to a read-only store that
+  /// throws [UnsupportedError]; read-write stores override it.
+  Future<void> deleteDirectory(String path) => throw UnsupportedError(
+        'This store is read-only; cannot delete directory "$path".',
       );
 
   /// Reads the file at engram-relative [path] as UTF-8 text.
