@@ -9,8 +9,8 @@
 #                                "am I ready?" check)
 #
 # Linux is the supported platform today; it also runs on macOS (bash). Windows
-# isn't covered yet — a PowerShell port would slot in alongside, so each check
-# below stays focused on a single tool to keep that port straightforward.
+# is covered by the sibling PowerShell port, scripts/install.ps1, which mirrors
+# the checks below one-for-one — keep the two in step when either changes.
 set -uo pipefail
 
 CHECK_ONLY=0

@@ -33,9 +33,13 @@ void main() {
       expect(isCanonicalUlid(engram.id), isTrue);
 
       // The folder holds exactly .brainframe/engram.json and nothing more.
+      // listSync yields OS-native separators, so normalize to '/' to keep the
+      // engram-relative expectation platform-independent (Windows uses '\').
       final entries = Directory(loc.path)
           .listSync(recursive: true)
-          .map((e) => e.path.substring(loc.path.length + 1))
+          .map((e) => e.path
+              .substring(loc.path.length + 1)
+              .replaceAll(Platform.pathSeparator, '/'))
           .toSet();
       expect(entries, {'.brainframe', '.brainframe/engram.json'});
 
