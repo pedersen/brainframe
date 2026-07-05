@@ -8,6 +8,7 @@ import 'package:brainframe/engram/engram_scope.dart';
 import 'package:brainframe/engram/engram_store.dart';
 import 'package:brainframe/engram/ui/browser_preferences.dart';
 import 'package:brainframe/engram/ui/engram_browser.dart';
+import 'package:brainframe/engram/ui/markdown_editor_pane.dart';
 import 'package:brainframe/engram/ui/markdown_reader.dart';
 import 'package:brainframe/theme/app_settings.dart';
 import 'package:brainframe/theme/design_language.dart';
@@ -291,6 +292,69 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(resizeHandle()).dx, greaterThan(before));
   });
+
+  group('editing gate', () {
+    testWidgets('a read-only engram shows the reader with no edit affordances',
+        (tester) async {
+      setWidth(tester, 1000);
+      await tester.pumpWidget(harness(repo())); // tutorial: read-only asset engram
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MarkdownReader), findsOneWidget);
+      expect(find.byType(MarkdownEditorPane), findsNothing);
+      expect(find.text('Edit'), findsNothing);
+    });
+
+    testWidgets('a writable engram opens the editor and saves edits',
+        (tester) async {
+      setWidth(tester, 1000);
+      final store = _RwStore({'welcome.md': '# Welcome'});
+      final engram = Engram(
+        id: 'writable',
+        displayName: 'My Notes',
+        readOnly: false,
+        store: store,
+      );
+      await tester.pumpWidget(harnessFor(repo(), engram));
+      await tester.pumpAndSettle();
+
+      // The editor pane (not the plain reader) is shown for a writable file.
+      expect(find.byType(MarkdownEditorPane), findsOneWidget);
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Preview'), findsOneWidget);
+      expect(find.text('Saved'), findsOneWidget);
+
+      // Edit → status goes to unsaved → manual save → back to saved.
+      await tester.enterText(find.byType(TextField), '# Welcome edited');
+      await tester.pump();
+      expect(find.text('Unsaved changes'), findsOneWidget);
+
+      await tester.tap(find.text('Unsaved changes'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Saved'), findsOneWidget);
+
+      // …and the change reached the store the whole way through the browser.
+      expect(store.files['welcome.md'], '# Welcome edited');
+    });
+  });
+}
+
+/// An in-memory read-write store for the editing end-to-end test.
+class _RwStore extends EngramStore {
+  _RwStore(this.files);
+  final Map<String, String> files;
+
+  @override
+  Future<List<String>> list() async => files.keys.toList();
+
+  @override
+  Future<Uint8List> readBytes(String path) async =>
+      Uint8List.fromList(utf8.encode(files[path]!));
+
+  @override
+  Future<void> writeBytes(String path, Uint8List bytes) async =>
+      files[path] = utf8.decode(bytes);
 }
 
 /// A store with a mix of visible and hidden entries.

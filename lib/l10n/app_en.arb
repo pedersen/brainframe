@@ -193,5 +193,45 @@
   "markdownEditorLabel": "Markdown editor",
   "@markdownEditorLabel": {
     "description": "Screen-reader label for the plain-text Markdown source editor (a multiline text field where the user types raw Markdown)."
+  },
+
+  "editorModeGroupLabel": "Editing mode",
+  "@editorModeGroupLabel": {
+    "description": "Screen-reader label for the Edit/Preview toggle group in the Markdown editor header."
+  },
+
+  "editorModeEdit": "Edit",
+  "@editorModeEdit": {
+    "description": "Label for the toggle segment that shows the raw Markdown source editor."
+  },
+
+  "editorModePreview": "Preview",
+  "@editorModePreview": {
+    "description": "Label for the toggle segment that shows the rendered Markdown preview."
+  },
+
+  "saveStatusSaved": "Saved",
+  "@saveStatusSaved": {
+    "description": "Save-status chip: the file is saved and matches what is on disk."
+  },
+
+  "saveStatusSaving": "Saving…",
+  "@saveStatusSaving": {
+    "description": "Save-status chip: a write to disk is in progress."
+  },
+
+  "saveStatusUnsaved": "Unsaved changes",
+  "@saveStatusUnsaved": {
+    "description": "Save-status chip: the buffer has edits not yet written to disk."
+  },
+
+  "saveStatusError": "Couldn’t save",
+  "@saveStatusError": {
+    "description": "Save-status chip: the last write to disk failed; edits are kept for retry."
+  },
+
+  "saveNowTooltip": "Save now",
+  "@saveNowTooltip": {
+    "description": "Tooltip and screen-reader hint for tapping the save-status chip to flush edits to disk immediately."
   }
 }

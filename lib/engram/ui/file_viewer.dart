@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../engram_store.dart';
 import 'file_path_breadcrumb.dart';
+import 'markdown_editor_pane.dart';
 import 'markdown_reader.dart';
 
 /// Image extensions Flutter decodes natively via [Image.memory] — no extra
@@ -37,21 +38,37 @@ bool isMarkdownPath(String path) =>
 
 /// Builds the right content viewer for [path], dispatching on its extension.
 ///
-/// Markdown renders in [MarkdownReader]; images render in [ImageFileViewer];
+/// Markdown renders in [MarkdownReader] (read-only) or, when [readOnly] is
+/// false, the editable [MarkdownEditorPane]; images render in [ImageFileViewer];
 /// every other type falls through to [UnsupportedFileViewer]. That fall-through
 /// is the seam future PDF and EPUB viewers slot into — add the extension check
 /// and the widget, and the browser needs no further change.
 ///
-/// [availablePaths] and [onNavigateToFile] are only consulted by the Markdown
-/// reader (for intra-engram link navigation); other viewers ignore them.
+/// [readOnly] gates only the Markdown branch: a writable engram gets the editor,
+/// a built-in (asset) engram or any non-Markdown file stays read-only. It
+/// defaults to true so a caller that has not opted into editing never exposes
+/// edit affordances by accident.
+///
+/// [availablePaths] and [onNavigateToFile] are consulted by the Markdown reader
+/// and editor preview (for intra-engram link navigation); other viewers ignore
+/// them.
 Widget buildFileViewer({
   required EngramStore store,
   required String path,
   Set<String> availablePaths = const {},
   void Function(String path)? onNavigateToFile,
+  bool readOnly = true,
 }) {
   if (isMarkdownPath(path)) {
-    return MarkdownReader(
+    if (readOnly) {
+      return MarkdownReader(
+        store: store,
+        path: path,
+        availablePaths: availablePaths,
+        onNavigateToFile: onNavigateToFile,
+      );
+    }
+    return MarkdownEditorPane(
       store: store,
       path: path,
       availablePaths: availablePaths,

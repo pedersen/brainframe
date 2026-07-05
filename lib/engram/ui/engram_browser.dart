@@ -252,6 +252,8 @@ class _EngramBrowserState extends State<EngramBrowser> {
       path: selected,
       availablePaths: paths.toSet(),
       onNavigateToFile: _selectFile,
+      // Built-in engrams are read-only; a writable engram gets the editor.
+      readOnly: engram.readOnly,
     );
   }
 
