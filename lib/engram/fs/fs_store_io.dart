@@ -54,16 +54,69 @@ class FileSystemEngramStore extends EngramStore {
 
   @override
   Future<void> writeBytes(String path, Uint8List bytes) async {
-    if (path == markerDirectoryName || path.startsWith('$markerDirectoryName/')) {
+    _refuseMarker(path);
+    final file = File(_resolve(path));
+    await file.parent.create(recursive: true);
+    await _atomicWrite(file, bytes);
+  }
+
+  @override
+  Future<void> delete(String path) async {
+    _refuseMarker(path);
+    await File(_resolve(path)).delete();
+  }
+
+  @override
+  Future<void> move(String from, String to) async {
+    _refuseMarker(from);
+    _refuseMarker(to);
+    final target = File(_resolve(to));
+    await target.parent.create(recursive: true);
+    await File(_resolve(from)).rename(target.path);
+  }
+
+  @override
+  Future<void> createDirectory(String path) async {
+    _refuseMarker(path);
+    await Directory(_resolve(path)).create(recursive: true);
+  }
+
+  /// Writes [bytes] to [file] atomically (Decision 5): write a sibling temp
+  /// file with the data flushed to disk, then `rename` it over [file]. Rename
+  /// is atomic within a filesystem, so an interrupted write (crash, power loss)
+  /// leaves a reader with either the intact old file or the complete new one,
+  /// never a half-written one. The temp file is a sibling so the rename stays
+  /// on one filesystem; on failure before the rename it is cleaned up and
+  /// [file] is left untouched. Writes to the same [file] must not run
+  /// concurrently — the save pipeline serializes them per path.
+  Future<void> _atomicWrite(File file, Uint8List bytes) async {
+    final temp = File('${file.path}.tmp');
+    try {
+      await temp.writeAsBytes(bytes, flush: true);
+      await temp.rename(file.path);
+    } catch (_) {
+      if (await temp.exists()) {
+        try {
+          await temp.delete();
+        } catch (_) {
+          // Best-effort cleanup; surface the original failure below.
+        }
+      }
+      rethrow;
+    }
+  }
+
+  /// Refuses any operation targeting the app-owned [markerDirectoryName] tree,
+  /// which is metadata, not engram content.
+  void _refuseMarker(String path) {
+    if (path == markerDirectoryName ||
+        path.startsWith('$markerDirectoryName/')) {
       throw ArgumentError.value(
         path,
         'path',
-        'the $markerDirectoryName marker is app-owned and cannot be written',
+        'the $markerDirectoryName marker is app-owned and cannot be modified',
       );
     }
-    final file = File(_resolve(path));
-    await file.parent.create(recursive: true);
-    await file.writeAsBytes(bytes);
   }
 
   /// Resolves an engram-relative [path] to an absolute filesystem path, after

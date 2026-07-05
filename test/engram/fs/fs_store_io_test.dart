@@ -129,6 +129,137 @@ void main() {
     });
   });
 
+  group('file-management primitives', () {
+    late EngramLocation loc;
+    late FileSystemEngramStore store;
+    setUp(() {
+      loc = locFor('e');
+      store = FileSystemEngramStore(loc);
+    });
+
+    test('delete removes a file', () async {
+      await store.writeString('a.md', 'x');
+      await store.delete('a.md');
+      expect(await store.list(), isEmpty);
+      expect(File('${loc.path}/a.md').existsSync(), isFalse);
+    });
+
+    test('delete of a missing file throws', () async {
+      await expectLater(
+        () => store.delete('missing.md'),
+        throwsA(isA<FileSystemException>()),
+      );
+    });
+
+    test('delete refuses the app-owned marker', () {
+      expect(
+        () => store.delete('.brainframe/engram.json'),
+        throwsArgumentError,
+      );
+    });
+
+    test('delete rejects a parent-directory escape', () {
+      expect(() => store.delete('../a.md'), throwsArgumentError);
+    });
+
+    test('move renames a file in place', () async {
+      await store.writeString('a.md', 'hi');
+      await store.move('a.md', 'b.md');
+      expect(await store.list(), ['b.md']);
+      expect(await store.readString('b.md'), 'hi');
+    });
+
+    test('move creates destination parents', () async {
+      await store.writeString('a.md', 'hi');
+      await store.move('a.md', 'sub/deep/b.md');
+      expect(await store.readString('sub/deep/b.md'), 'hi');
+      expect(File('${loc.path}/a.md').existsSync(), isFalse);
+    });
+
+    test('move refuses the marker as source or destination', () {
+      expect(
+        () => store.move('.brainframe/engram.json', 'b.md'),
+        throwsArgumentError,
+      );
+      expect(
+        () => store.move('a.md', '.brainframe/engram.json'),
+        throwsArgumentError,
+      );
+    });
+
+    test('move rejects a parent-directory escape', () {
+      expect(() => store.move('a.md', '../b.md'), throwsArgumentError);
+    });
+
+    test('createDirectory makes an empty directory (not listed as content)',
+        () async {
+      await store.createDirectory('folder');
+      expect(Directory('${loc.path}/folder').existsSync(), isTrue);
+      expect(await store.list(), isEmpty);
+    });
+
+    test('createDirectory creates missing parents and is idempotent', () async {
+      await store.createDirectory('a/b/c');
+      await store.createDirectory('a/b/c'); // second call is a no-op
+      expect(Directory('${loc.path}/a/b/c').existsSync(), isTrue);
+    });
+
+    test('createDirectory refuses the app-owned marker', () {
+      expect(() => store.createDirectory('.brainframe'), throwsArgumentError);
+    });
+  });
+
+  group('atomic writes (Decision 5)', () {
+    test('a successful write leaves no stray temp file', () async {
+      final loc = locFor('e');
+      final store = FileSystemEngramStore(loc);
+      await store.writeString('a.md', 'hello');
+      final onDisk = Directory(loc.path)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .map((f) => f.path)
+          .toList();
+      expect(onDisk.any((p) => p.endsWith('.tmp')), isFalse);
+      expect(await store.list(), ['a.md']);
+    });
+
+    test('a write that fails before rename leaves the original intact',
+        () async {
+      final loc = locFor('e');
+      final store = FileSystemEngramStore(loc);
+      await store.writeString('a.md', 'original');
+
+      // Block the temp write by occupying its sibling path with a directory,
+      // so writeAsBytes fails before the rename step can run.
+      Directory('${loc.path}/a.md.tmp').createSync();
+
+      await expectLater(
+        () => store.writeString('a.md', 'replacement'),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(await store.readString('a.md'), 'original');
+    });
+
+    test('a write that fails at rename cleans up its temp file', () async {
+      final loc = locFor('e');
+      final store = FileSystemEngramStore(loc);
+
+      // Occupy the target path with a directory so the temp file writes
+      // successfully but the rename onto it fails; the temp must be cleaned up.
+      Directory('${loc.path}/a.md').createSync(recursive: true);
+
+      await expectLater(
+        () => store.writeString('a.md', 'x'),
+        throwsA(isA<FileSystemException>()),
+      );
+      final leftovers = Directory(loc.path)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.tmp'));
+      expect(leftovers, isEmpty);
+    });
+  });
+
   group('openFileSystemEngram', () {
     test('reopens a created engram with the same identity', () async {
       final loc = locFor('Personal');
