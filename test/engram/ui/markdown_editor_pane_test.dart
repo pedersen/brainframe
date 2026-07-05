@@ -111,6 +111,27 @@ void main() {
     expect(find.text('Saved'), findsOneWidget);
   });
 
+  testWidgets('edits survive an Edit → Preview → Edit round-trip',
+      (tester) async {
+    final store = _RwStore({'a.md': '# A'});
+    await tester.pumpWidget(_host(store, 'a.md'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '# A edited');
+    await tester.pump();
+
+    await tester.tap(find.text('Preview'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MarkdownSourceEditor), findsNothing);
+
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+
+    // The editor must show the in-progress edit, not the on-open copy.
+    expect(find.text('# A edited'), findsOneWidget);
+    expect(find.text('# A'), findsNothing);
+  });
+
   testWidgets('toggling to Preview flushes pending edits first', (tester) async {
     final store = _RwStore({'a.md': '# A'});
     await tester.pumpWidget(_host(store, 'a.md'));

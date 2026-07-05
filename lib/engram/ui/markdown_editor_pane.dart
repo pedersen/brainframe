@@ -45,10 +45,11 @@ class _MarkdownEditorPaneState extends State<MarkdownEditorPane> {
 
   _Mode _mode = _Mode.edit;
 
-  /// The path whose text has been loaded into the controller, and that text.
-  /// Until this matches [widget.path] the pane shows a loading spinner.
+  /// The path whose content has been loaded into the controller. Until this
+  /// matches [widget.path] the pane shows a loading spinner. The text itself is
+  /// not cached here — the controller's live buffer is the source of truth, so
+  /// re-entering Edit mode reflects edits made before a Preview round-trip.
   String? _loadedPath;
-  String _loadedText = '';
   Object? _loadError;
 
   @override
@@ -74,7 +75,6 @@ class _MarkdownEditorPaneState extends State<MarkdownEditorPane> {
       if (!mounted || widget.path != path) return;
       setState(() {
         _loadedPath = path;
-        _loadedText = text;
         _loadError = null;
         _mode = _Mode.edit; // a freshly opened file starts in Edit
       });
@@ -146,7 +146,9 @@ class _MarkdownEditorPaneState extends State<MarkdownEditorPane> {
       case _Mode.edit:
         return MarkdownSourceEditor(
           key: ValueKey(widget.path),
-          initialText: _loadedText,
+          // The controller's buffer, not the on-open snapshot: re-entering Edit
+          // after a Preview round-trip must show the in-progress edits.
+          initialText: _controller.text,
           onChanged: _controller.edit,
           focusNode: _focusNode,
           scrollController: _scrollController,
