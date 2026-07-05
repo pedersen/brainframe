@@ -27,17 +27,32 @@ cd "$(git rev-parse --show-toplevel)"
 
 # `coverde transform` skip steps, one per excluded pattern. `-m w` overrides the
 # output each run (its default appends, which would double-count on reruns).
+# coverde matches these against the OS-native path, so the separator is '\' on
+# Windows and '/' on POSIX; use '.' (regex any-char) for separators so one
+# pattern fits both. A literal '/' silently matches nothing on Windows.
 EXCLUSIONS=(
-  -t 'skip-by-regex=/main\.dart$'
+  -t 'skip-by-regex=.main\.dart$'
   -t 'skip-by-regex=\.g\.dart$'
-  -t 'skip-by-regex=/window_state_io\.dart$'
-  -t 'skip-by-regex=lib/l10n/gen/'
+  -t 'skip-by-regex=.window_state_io\.dart$'
+  -t 'skip-by-regex=lib.l10n.gen.'
 )
 COVERAGE_MINIMUM=90
 
+# coverde is a Dart global. On Linux/macOS (and CI) it's a bare launcher on
+# PATH. On Windows `dart pub global activate` installs only coverde.bat, which
+# Git bash won't resolve by bare name — invoke it by its explicit name, or fall
+# back to the Dart SDK's own launcher. Same tool either way.
+if command -v coverde >/dev/null 2>&1; then
+  COVERDE=(coverde)
+elif command -v coverde.bat >/dev/null 2>&1; then
+  COVERDE=(coverde.bat)
+else
+  COVERDE=(dart pub global run coverde)
+fi
+
 dart run tool/gen_coverage_helper.dart
 flutter test --coverage
-coverde transform \
+"${COVERDE[@]}" transform \
   -i coverage/lcov.info \
   -o coverage/filtered.info \
   -m w \
@@ -48,4 +63,4 @@ if [[ "${COVERAGE_SKIP_GATE:-0}" == "1" ]]; then
   exit 0
 fi
 
-coverde check -i coverage/filtered.info "$COVERAGE_MINIMUM"
+"${COVERDE[@]}" check -i coverage/filtered.info "$COVERAGE_MINIMUM"

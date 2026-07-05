@@ -36,8 +36,24 @@ flutter run -d linux              # or: chrome, windows, macos, android, ios
 ## Development
 
 Contributions flow through the worktree → branch → pull request workflow
-described in `.claude/rules/git-workflow.md`. Run `scripts/install.sh` to set up
-the markdown lint and pre-commit tooling.
+described in `.claude/rules/git-workflow.md`. Run `scripts/install.sh` (Linux /
+macOS) or `scripts/install.ps1` (Windows PowerShell) to set up the markdown lint
+and pre-commit tooling. Add `--check` / `-Check` to validate without changing
+anything.
+
+On Windows, PowerShell's default execution policy blocks unsigned scripts. Run
+the installer once with a bypass:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+```
+
+or allow local scripts for your user permanently (standard developer setting, no
+admin needed) so `scripts\install.ps1` runs directly thereafter:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
 
 ## Translations
 

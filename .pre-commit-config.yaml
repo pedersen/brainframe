@@ -34,11 +34,14 @@ repos:
       - id: flutter-analyze
         name: flutter analyze
         language: system
-        # `env -u GIT_*` strips the git-hook environment. Git exports GIT_DIR
-        # and friends pointing at this repo when it runs a hook, which would
-        # otherwise hijack Flutter's own version-detection git calls and make
-        # it report "0.0.0-unknown", breaking pub resolution.
-        entry: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE flutter analyze
+        # Run through tool/without_git_env.js, which strips the git-hook
+        # environment (GIT_DIR and friends) before launching Flutter. Git points
+        # those at this repo when it runs a hook, which on Linux/macOS hijacks
+        # Flutter's version-detection git calls and makes it report
+        # "0.0.0-unknown", breaking pub resolution. The Node launcher replaces
+        # the Unix-only `env -u ...` prefix so this also works on Windows, where
+        # `env` isn't on PATH — see that file's header for the full rationale.
+        entry: node tool/without_git_env.js flutter analyze
         # Analyze the whole project once, not per-file, but only when Dart
         # changes are staged.
         files: \.dart$
@@ -50,8 +53,9 @@ repos:
         language: system
         # Cross-platform Dart check (no bash/grep): AST-scans lib/ for hardcoded
         # widget-slot strings and verifies app_en_XA.arb matches the generator.
-        # GIT_* stripped for the same reason as flutter analyze above.
-        entry: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE dart run tool/check_l10n.dart
+        # Wrapped in without_git_env.js to strip GIT_* for the same reason as
+        # flutter analyze above.
+        entry: node tool/without_git_env.js dart run tool/check_l10n.dart
         # Scans the whole tree once; run when Dart or ARB files are staged.
         files: \.(dart|arb)$
         pass_filenames: false
@@ -60,11 +64,13 @@ repos:
       - id: coverage-gate
         name: coverage gate (flutter test --coverage, >=90%)
         language: system
-        # See the flutter-analyze note: strip the git-hook environment so
-        # Flutter can detect its own SDK version. tool/coverage.sh runs the
-        # full suite with coverage, filters documented exclusions, and fails
-        # the push under 90%. Needs `coverde` on PATH (see setup notes above).
-        entry: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE bash tool/coverage.sh
+        # See the flutter-analyze note: without_git_env.js strips the git-hook
+        # environment so Flutter can detect its own SDK version, and on Windows
+        # also puts Git's bundled `bash` on PATH so this entry resolves.
+        # tool/coverage.sh runs the full suite with coverage, filters documented
+        # exclusions, and fails the push under 90%. Needs `coverde` on PATH
+        # (see setup notes above).
+        entry: node tool/without_git_env.js bash tool/coverage.sh
         # Run the whole pipeline on every push, regardless of which files changed.
         always_run: true
         pass_filenames: false
