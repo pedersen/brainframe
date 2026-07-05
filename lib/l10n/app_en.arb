@@ -188,5 +188,10 @@
   "viewerImageFitToWindow": "Fit image to window",
   "@viewerImageFitToWindow": {
     "description": "Tooltip and screen-reader label for the image-viewer button that switches from the actual-size view back to scaling the whole image to fit the pane."
+  },
+
+  "markdownEditorLabel": "Markdown editor",
+  "@markdownEditorLabel": {
+    "description": "Screen-reader label for the plain-text Markdown source editor (a multiline text field where the user types raw Markdown)."
   }
 }

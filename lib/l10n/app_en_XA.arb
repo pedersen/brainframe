@@ -32,5 +32,6 @@
   "viewerImageLabel": "[Íɱáǵé {name}~~]",
   "viewerUnsupportedFormat": "[Çáñ’ŧ đíšþłáý “{name}” ýéŧ.~~~~~~~]",
   "viewerImageActualSize": "[Víéŵ áŧ ƒúłł šížé~~~~~~]",
-  "viewerImageFitToWindow": "[Ƒíŧ íɱáǵé ŧó ŵíñđóŵ~~~~~~]"
+  "viewerImageFitToWindow": "[Ƒíŧ íɱáǵé ŧó ŵíñđóŵ~~~~~~]",
+  "markdownEditorLabel": "[Ḿáŕķđóŵñ éđíŧóŕ~~~~~~]"
 }
