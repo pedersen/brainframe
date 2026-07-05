@@ -104,6 +104,27 @@ class AssetEngramStore extends EngramStore {
     );
   }
 
+  @override
+  Future<void> delete(String path) {
+    throw UnsupportedError(
+      'AssetEngramStore is read-only; cannot delete "$path".',
+    );
+  }
+
+  @override
+  Future<void> move(String from, String to) {
+    throw UnsupportedError(
+      'AssetEngramStore is read-only; cannot move "$from".',
+    );
+  }
+
+  @override
+  Future<void> createDirectory(String path) {
+    throw UnsupportedError(
+      'AssetEngramStore is read-only; cannot create directory "$path".',
+    );
+  }
+
   /// BCP47-ish asset directory name for [locale]: `en`, `es_MX`, `en_XA`.
   static String _codeOf(Locale locale) => locale.countryCode == null
       ? locale.languageCode

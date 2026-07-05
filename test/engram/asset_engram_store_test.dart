@@ -53,6 +53,13 @@ void main() {
         throwsUnsupportedError,
       );
     });
+
+    test('is read-only: delete, move, createDirectory throw UnsupportedError',
+        () {
+      expect(() => store.delete('welcome.md'), throwsUnsupportedError);
+      expect(() => store.move('welcome.md', 'moved.md'), throwsUnsupportedError);
+      expect(() => store.createDirectory('folder'), throwsUnsupportedError);
+    });
   });
 
   group('AssetEngramStore over the bundled help engram', () {

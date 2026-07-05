@@ -3,13 +3,18 @@ import 'dart:typed_data';
 
 /// The content-access contract for every engram.
 ///
-/// Backends implement three primitives — [list], [readBytes], [writeBytes] —
-/// over engram-relative paths, and never expose a `Directory`, so the
-/// asset-backed built-in engrams (which have no directory) and any future
+/// Backends implement the read primitives — [list], [readBytes] — and
+/// [writeBytes] over engram-relative paths, and never expose a `Directory`, so
+/// the asset-backed built-in engrams (which have no directory) and any future
 /// backend sit alongside on-disk engrams. Read-only stores (the asset bundle)
 /// throw [UnsupportedError] from [writeBytes]; read-write stores (the
-/// filesystem) implement it. Whether an engram is read-only is carried by
-/// `Engram.readOnly`, not asked of the store.
+/// filesystem) implement it.
+///
+/// The remaining mutations — [delete], [move], [createDirectory] — default to a
+/// read-only store that throws [UnsupportedError], so a partial or read-only
+/// backend need not restate them; read-write stores override all three.
+/// Whether an engram is read-only is carried by `Engram.readOnly`, not asked of
+/// the store.
 ///
 /// **Bytes are the primitive.** Engrams hold binary content — images, PDFs,
 /// EPUBs — as first-class citizens alongside markdown, so the store speaks in
@@ -35,6 +40,36 @@ abstract class EngramStore {
   /// Read-only stores throw [UnsupportedError]; callers gate on
   /// `Engram.readOnly` rather than catching it.
   Future<void> writeBytes(String path, Uint8List bytes);
+
+  /// Deletes the file at engram-relative [path].
+  ///
+  /// Deleting a path that is not an existing file is an error, surfaced by the
+  /// backend. Defaults to a read-only store that throws [UnsupportedError];
+  /// read-write stores override it, and callers gate on `Engram.readOnly`
+  /// rather than catching.
+  Future<void> delete(String path) => throw UnsupportedError(
+        'This store is read-only; cannot delete "$path".',
+      );
+
+  /// Moves (or renames) the file at [from] to [to], both engram-relative.
+  ///
+  /// The destination's parent directories are created as needed; the
+  /// destination must not already exist. Defaults to a read-only store that
+  /// throws [UnsupportedError]; read-write stores override it.
+  Future<void> move(String from, String to) => throw UnsupportedError(
+        'This store is read-only; cannot move "$from".',
+      );
+
+  /// Creates an empty directory at engram-relative [path], including any
+  /// missing parents; a no-op if it already exists.
+  ///
+  /// Directories are otherwise implicit — [writeBytes] creates a file's
+  /// parents — so this exists for "new empty folder" and the destination shell
+  /// of a folder move. Defaults to a read-only store that throws
+  /// [UnsupportedError]; read-write stores override it.
+  Future<void> createDirectory(String path) => throw UnsupportedError(
+        'This store is read-only; cannot create directory "$path".',
+      );
 
   /// Reads the file at engram-relative [path] as UTF-8 text.
   ///
