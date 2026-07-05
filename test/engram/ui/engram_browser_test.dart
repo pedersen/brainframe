@@ -45,12 +45,17 @@ void main() {
   });
 
   // Force the Material design language so the scaffold is deterministic.
-  Widget harnessFor(EngramRepository repository, Engram engram) => AppSettings(
+  Widget harnessFor(
+    EngramRepository repository,
+    Engram engram, {
+    EngramBrowserController? controller,
+  }) =>
+      AppSettings(
         designOverride: DesignLanguage.material,
         child: localizedApp(
           home: EngramScope(
             initialEngram: engram,
-            child: EngramBrowser(repository: repository),
+            child: EngramBrowser(repository: repository, controller: controller),
           ),
         ),
       );
@@ -336,6 +341,78 @@ void main() {
 
       // …and the change reached the store the whole way through the browser.
       expect(store.files['welcome.md'], '# Welcome edited');
+    });
+  });
+
+  group('re-list seam (EngramBrowserController)', () {
+    Engram engramFor(EngramStore store) => Engram(
+          id: 'w',
+          displayName: 'W',
+          readOnly: false,
+          store: store,
+        );
+
+    testWidgets('refresh re-lists the engram and selects a new file',
+        (tester) async {
+      setWidth(tester, 1000);
+      final store = _RwStore({'welcome.md': '# Welcome'});
+      final controller = EngramBrowserController();
+      await tester.pumpWidget(
+        harnessFor(repo(), engramFor(store), controller: controller),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('new.md'), findsNothing); // not there yet
+
+      // Simulate a "new note" mutation on the store, then invalidate.
+      store.files['notes/new.md'] = '# New note';
+      controller.refresh(selectPath: 'notes/new.md');
+      await tester.pumpAndSettle();
+
+      // The new file is listed in the tree and is now the open selection.
+      expect(find.text('new.md'), findsWidgets); // tree row
+      final pane =
+          tester.widget<MarkdownEditorPane>(find.byType(MarkdownEditorPane));
+      expect(pane.path, 'notes/new.md');
+    });
+
+    testWidgets('refresh after a delete falls back to a default selection',
+        (tester) async {
+      setWidth(tester, 1000);
+      final store = _RwStore({'welcome.md': '# Welcome', 'note.md': '# Note'});
+      final controller = EngramBrowserController();
+      await tester.pumpWidget(
+        harnessFor(repo(), engramFor(store), controller: controller),
+      );
+      await tester.pumpAndSettle();
+
+      // Open note.md, then delete it out from under the browser.
+      await tester.tap(find.text('note.md'));
+      await tester.pumpAndSettle();
+      store.files.remove('note.md');
+      controller.refresh();
+      await tester.pumpAndSettle();
+
+      // The deleted file is gone; the selection falls back to welcome.md.
+      expect(find.text('note.md'), findsNothing);
+      expect(find.text('welcome.md'), findsWidgets);
+    });
+
+    testWidgets('a detached controller is inert', (tester) async {
+      setWidth(tester, 1000);
+      final store = _RwStore({'welcome.md': '# W'});
+      final controller = EngramBrowserController();
+      await tester.pumpWidget(
+        harnessFor(repo(), engramFor(store), controller: controller),
+      );
+      await tester.pumpAndSettle();
+
+      // Re-pump the same browser without a controller: didUpdateWidget detaches
+      // the old one, so refresh() becomes a no-op rather than reaching a dead
+      // state.
+      await tester.pumpWidget(harnessFor(repo(), engramFor(store)));
+      await tester.pumpAndSettle();
+      controller.refresh(selectPath: 'anything.md'); // must not throw
+      await tester.pumpAndSettle();
     });
   });
 }
