@@ -233,5 +233,15 @@
   "saveNowTooltip": "Save now",
   "@saveNowTooltip": {
     "description": "Tooltip and screen-reader hint for tapping the save-status chip to flush edits to disk immediately."
+  },
+
+  "newNote": "New note",
+  "@newNote": {
+    "description": "Tooltip and dialog title for creating a new Markdown note in the current engram."
+  },
+
+  "newNoteNameLabel": "Note name",
+  "@newNoteNameLabel": {
+    "description": "Text-field label in the new-note dialog where the user types the note's name."
   }
 }
