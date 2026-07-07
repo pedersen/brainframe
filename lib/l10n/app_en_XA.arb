@@ -43,5 +43,7 @@
   "saveStatusError": "[Çóúłđñ’ŧ šávé~~~~~]",
   "saveNowTooltip": "[Šávé ñóŵ~~~]",
   "newNote": "[Ñéŵ ñóŧé~~~]",
-  "newNoteNameLabel": "[Ñóŧé ñáɱé~~~]"
+  "newNoteNameLabel": "[Ñóŧé ñáɱé~~~]",
+  "newFolder": "[Ñéŵ ƒółđéŕ~~~~]",
+  "newFolderNameLabel": "[Ƒółđéŕ ñáɱé~~~~]"
 }

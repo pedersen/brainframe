@@ -168,8 +168,13 @@ class _EngramBrowserState extends State<EngramBrowser> {
 
   Future<_BrowserData> _load(Engram engram, EngramStore store) async {
     final paths = await store.list();
+    final directories = await store.listDirectories();
     final collapsed = await _prefs.collapsedFolders(engram.id);
-    return _BrowserData(paths: paths, collapsed: collapsed);
+    return _BrowserData(
+      paths: paths,
+      directories: directories,
+      collapsed: collapsed,
+    );
   }
 
   @override
@@ -188,6 +193,12 @@ class _EngramBrowserState extends State<EngramBrowser> {
         // link resolution all see the same visible set.
         final paths = [
           for (final path in data?.paths ?? const <String>[])
+            if (!isHiddenEngramPath(path)) path,
+        ];
+        // Empty folders the user created — no file reveals them, so the tree
+        // needs them explicitly. Same hidden-path filter as files.
+        final directories = [
+          for (final path in data?.directories ?? const <String>[])
             if (!isHiddenEngramPath(path)) path,
         ];
         final collapsed = data?.collapsed ?? const <String>{};
@@ -215,6 +226,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
             loading: loading,
             hasError: snapshot.hasError,
             paths: paths,
+            directories: directories,
             collapsed: collapsed,
             selected: selected,
           ),
@@ -230,6 +242,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
     required bool loading,
     required bool hasError,
     required List<String> paths,
+    required List<String> directories,
     required Set<String> collapsed,
     required String? selected,
   }) {
@@ -241,7 +254,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
         ? const SizedBox.shrink()
         : FileTree(
             key: ValueKey(engram.id),
-            nodes: buildFileTree(paths),
+            nodes: buildFileTree(paths, directoryPaths: directories),
             selectedPath: selected,
             onSelectFile: _selectFile,
             initialCollapsed: collapsed,
@@ -253,6 +266,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
       repository: widget.repository,
       tree: tree,
       onNewNote: engram.readOnly ? null : _newNote,
+      onNewFolder: engram.readOnly ? null : _newFolder,
     );
     final reader = _reader(
       l10n: l10n,
@@ -338,9 +352,13 @@ class _EngramBrowserState extends State<EngramBrowser> {
   Future<void> _newNote() async {
     final store = _contentStore;
     if (store == null) return;
+    final l10n = AppLocalizations.of(context);
     final name = await showDialog<String>(
       context: context,
-      builder: (_) => const _NewNoteDialog(),
+      builder: (_) => _NameInputDialog(
+        title: l10n.newNote,
+        label: l10n.newNoteNameLabel,
+      ),
     );
     if (name == null || !mounted) return; // cancelled
 
@@ -349,12 +367,39 @@ class _EngramBrowserState extends State<EngramBrowser> {
         if (!path.contains('/') && path.toLowerCase().endsWith('.md'))
           path.substring(0, path.length - '.md'.length),
     };
-    final stem = EngramFileOps.freeName(_noteStem(name), existingStems);
+    final stem = EngramFileOps.freeName(_sanitizeName(name), existingStems);
     final notePath = '$stem.md';
     await store.writeString(notePath, '# ${_noteTitle(stem)}\n');
     if (!mounted) return;
     setState(() => _drawerOpen = false);
     _refresh(selectPath: notePath);
+  }
+
+  /// Prompts for a name and creates a new empty top-level folder (visible in the
+  /// tree via [EngramStore.listDirectories]), avoiding a collision with an
+  /// existing top-level folder using the same "Name", "Name 2" numbering.
+  Future<void> _newFolder() async {
+    final store = _contentStore;
+    if (store == null) return;
+    final l10n = AppLocalizations.of(context);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => _NameInputDialog(
+        title: l10n.newFolder,
+        label: l10n.newFolderNameLabel,
+      ),
+    );
+    if (name == null || !mounted) return; // cancelled
+
+    final existing = <String>{
+      for (final directory in await store.listDirectories())
+        if (!directory.contains('/')) directory, // top-level folder names
+    };
+    final folder = EngramFileOps.freeName(_sanitizeName(name), existing);
+    await store.createDirectory(folder);
+    if (!mounted) return;
+    setState(() => _drawerOpen = false);
+    _refresh();
   }
 
   /// The file to show: the user's selection when it belongs to [paths],
@@ -373,10 +418,12 @@ class _EngramBrowserState extends State<EngramBrowser> {
 
 String _fileName(String path) => path.split('/').last;
 
-/// A filesystem-safe note filename stem from a user-entered [name]: path
-/// separators become dashes, runs of whitespace collapse, and a blank name
-/// falls back to "Untitled". The `.md` extension is added by the caller.
-String _noteStem(String name) {
+/// A filesystem-safe name from a user-entered [name], shared by new notes and
+/// new folders: path separators become dashes, runs of whitespace collapse, and
+/// a blank name falls back to "Untitled". The note flow adds the `.md`
+/// extension. (Windows also forbids `:*?"<>|` and reserved device names —
+/// tightening this to be Windows-safe is a tracked follow-up.)
+String _sanitizeName(String name) {
   final cleaned = name
       .replaceAll(RegExp(r'[\\/]+'), '-')
       .replaceAll(RegExp(r'\s+'), ' ')
@@ -397,16 +444,20 @@ String _noteTitle(String stem) {
       .join(' ');
 }
 
-/// The name-prompt dialog for a new note. Pops its text on submit (Create or the
+/// A name-prompt dialog with the given [title] and field [label], shared by the
+/// new-note and new-folder actions. Pops its text on submit (Create or the
 /// keyboard action), or null on Cancel.
-class _NewNoteDialog extends StatefulWidget {
-  const _NewNoteDialog();
+class _NameInputDialog extends StatefulWidget {
+  const _NameInputDialog({required this.title, required this.label});
+
+  final String title;
+  final String label;
 
   @override
-  State<_NewNoteDialog> createState() => _NewNoteDialogState();
+  State<_NameInputDialog> createState() => _NameInputDialogState();
 }
 
-class _NewNoteDialogState extends State<_NewNoteDialog> {
+class _NameInputDialogState extends State<_NameInputDialog> {
   final TextEditingController _controller = TextEditingController();
 
   @override
@@ -421,11 +472,11 @@ class _NewNoteDialogState extends State<_NewNoteDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return AlertDialog.adaptive(
-      title: Text(l10n.newNote),
+      title: Text(widget.title),
       content: TextField(
         controller: _controller,
         autofocus: true,
-        decoration: InputDecoration(labelText: l10n.newNoteNameLabel),
+        decoration: InputDecoration(labelText: widget.label),
         onSubmitted: (_) => _submit(),
       ),
       actions: [
@@ -439,12 +490,18 @@ class _NewNoteDialogState extends State<_NewNoteDialog> {
   }
 }
 
-/// The active engram's loaded browser state: its file list and the collapsed
-/// folders restored from this device's saved preference.
+/// The active engram's loaded browser state: its file list, its directory list
+/// (including empty folders), and the collapsed folders restored from this
+/// device's saved preference.
 class _BrowserData {
-  const _BrowserData({required this.paths, required this.collapsed});
+  const _BrowserData({
+    required this.paths,
+    required this.directories,
+    required this.collapsed,
+  });
 
   final List<String> paths;
+  final List<String> directories;
   final Set<String> collapsed;
 }
 
@@ -456,14 +513,17 @@ class _Sidebar extends StatelessWidget {
     required this.repository,
     required this.tree,
     this.onNewNote,
+    this.onNewFolder,
   });
 
   final Engram engram;
   final EngramRepository repository;
   final Widget tree;
 
-  /// Creates a new note; null for a read-only engram, which shows no header.
+  /// Creates a new note / folder; null for a read-only engram, which shows no
+  /// header. Both are null or both are set together.
   final VoidCallback? onNewNote;
+  final VoidCallback? onNewFolder;
 
   @override
   Widget build(BuildContext context) {
@@ -474,7 +534,11 @@ class _Sidebar extends StatelessWidget {
         right: false,
         child: Column(
           children: [
-            if (onNewNote != null) _SidebarHeader(onNewNote: onNewNote!),
+            if (onNewNote != null && onNewFolder != null)
+              _SidebarHeader(
+                onNewNote: onNewNote!,
+                onNewFolder: onNewFolder!,
+              ),
             Expanded(child: tree),
             const Divider(height: 1),
             EngramSwitcher(repository: repository, current: engram),
@@ -487,9 +551,10 @@ class _Sidebar extends StatelessWidget {
 
 /// The sidebar's file-management action header (writable engrams only).
 class _SidebarHeader extends StatelessWidget {
-  const _SidebarHeader({required this.onNewNote});
+  const _SidebarHeader({required this.onNewNote, required this.onNewFolder});
 
   final VoidCallback onNewNote;
+  final VoidCallback onNewFolder;
 
   @override
   Widget build(BuildContext context) {
@@ -499,6 +564,11 @@ class _SidebarHeader extends StatelessWidget {
       child: Row(
         children: [
           const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.create_new_folder_outlined),
+            tooltip: l10n.newFolder,
+            onPressed: onNewFolder,
+          ),
           IconButton(
             icon: const Icon(Icons.note_add_outlined),
             tooltip: l10n.newNote,

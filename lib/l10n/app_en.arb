@@ -243,5 +243,15 @@
   "newNoteNameLabel": "Note name",
   "@newNoteNameLabel": {
     "description": "Text-field label in the new-note dialog where the user types the note's name."
+  },
+
+  "newFolder": "New folder",
+  "@newFolder": {
+    "description": "Tooltip and dialog title for creating a new folder in the current engram."
+  },
+
+  "newFolderNameLabel": "Folder name",
+  "@newFolderNameLabel": {
+    "description": "Text-field label in the new-folder dialog where the user types the folder's name."
   }
 }

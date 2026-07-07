@@ -532,15 +532,100 @@ void main() {
       expect(store.files, isEmpty);
     });
   });
+
+  group('new folder', () {
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    Engram writable(EngramStore store) =>
+        Engram(id: 'w', displayName: 'W', readOnly: false, store: store);
+
+    Finder dialogField() => find.descendant(
+        of: find.byType(Dialog), matching: find.byType(TextField));
+
+    Future<void> pumpBrowser(WidgetTester tester, EngramStore store) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      setWidth(tester, 1000);
+      await tester.pumpWidget(harnessFor(repo(), writable(store)));
+      await tester.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+    }
+
+    Future<void> openDialog(WidgetTester tester) async {
+      await tester.tap(find.byTooltip('New folder'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    testWidgets('a read-only engram shows no New folder action', (tester) async {
+      setWidth(tester, 1000);
+      await tester.pumpWidget(harness(repo())); // tutorial: read-only
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('New folder'), findsNothing);
+    });
+
+    testWidgets('an empty folder from listDirectories shows in the tree',
+        (tester) async {
+      final store = _RwStore({'welcome.md': '# W'}, directories: {'ideas'});
+      await pumpBrowser(tester, store);
+
+      // No file lives in it, yet the folder row is present.
+      expect(find.text('ideas'), findsOneWidget);
+    });
+
+    testWidgets('creates an empty folder that appears in the tree',
+        (tester) async {
+      final store = _RwStore({});
+      await pumpBrowser(tester, store);
+
+      await openDialog(tester);
+      await tester.enterText(dialogField(), 'Ideas');
+      await tester.tap(find.text('Create'));
+      await tester.pumpAndSettle();
+
+      expect(store.dirs, contains('Ideas'));
+      expect(find.text('Ideas'), findsOneWidget); // now visible in the tree
+    });
+
+    testWidgets('avoids colliding with an existing folder', (tester) async {
+      final store = _RwStore({}, directories: {'Ideas'});
+      await pumpBrowser(tester, store);
+
+      await openDialog(tester);
+      await tester.enterText(dialogField(), 'Ideas');
+      await tester.tap(find.text('Create'));
+      await tester.pumpAndSettle();
+
+      expect(store.dirs, contains('Ideas 2'));
+    });
+
+    testWidgets('Cancel creates nothing', (tester) async {
+      final store = _RwStore({});
+      await pumpBrowser(tester, store);
+
+      await openDialog(tester);
+      await tester.enterText(dialogField(), 'Nope');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(store.dirs, isEmpty);
+    });
+  });
 }
 
-/// An in-memory read-write store for the editing end-to-end test.
+/// An in-memory read-write store for the editing/file-management tests. Tracks
+/// files and directories (including empty ones), the latter surfaced through
+/// [listDirectories] like the filesystem backend.
 class _RwStore extends EngramStore {
-  _RwStore(this.files);
+  _RwStore(this.files, {Set<String>? directories})
+      : dirs = directories ?? <String>{};
   final Map<String, String> files;
+  final Set<String> dirs;
 
   @override
   Future<List<String>> list() async => files.keys.toList();
+
+  @override
+  Future<List<String>> listDirectories() async => dirs.toList();
 
   @override
   Future<Uint8List> readBytes(String path) async =>
@@ -549,6 +634,15 @@ class _RwStore extends EngramStore {
   @override
   Future<void> writeBytes(String path, Uint8List bytes) async =>
       files[path] = utf8.decode(bytes);
+
+  @override
+  Future<void> createDirectory(String path) async {
+    dirs.add(path);
+    final segments = path.split('/');
+    for (var i = 1; i < segments.length; i++) {
+      dirs.add(segments.sublist(0, i).join('/'));
+    }
+  }
 }
 
 /// A store with a mix of visible and hidden entries.

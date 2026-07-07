@@ -81,6 +81,42 @@ void main() {
     expect(tree.map((n) => n.name), ['A.md', 'a.md', 'B.md']);
   });
 
+  group('directoryPaths (empty folders)', () {
+    test('an empty directory becomes a childless folder node', () {
+      final tree = buildFileTree(const [], directoryPaths: ['ideas']);
+      expect(tree, hasLength(1));
+      expect(tree.single.isFolder, isTrue);
+      expect(tree.single.name, 'ideas');
+      expect(tree.single.children, isEmpty);
+    });
+
+    test('a nested empty directory materializes its ancestors', () {
+      final tree = buildFileTree(const [], directoryPaths: ['a/b/c']);
+      expect(_dump(tree), ['a/', '  b/', '    c/']);
+    });
+
+    test('empty folders merge with file-derived folders, sorted', () {
+      final tree = buildFileTree(
+        ['notes/first.md'],
+        directoryPaths: ['archive', 'notes/empty'],
+      );
+      expect(_dump(tree), [
+        'archive/',
+        'notes/',
+        '  empty/',
+        '  first.md',
+      ]);
+    });
+
+    test('a directory that also holds a file is not duplicated', () {
+      final tree =
+          buildFileTree(['notes/a.md'], directoryPaths: ['notes']);
+      expect(tree, hasLength(1));
+      expect(tree.single.name, 'notes');
+      expect(tree.single.children.map((n) => n.name), ['a.md']);
+    });
+  });
+
   group('isHiddenEngramPath', () {
     test('hides dotfiles and anything inside a dot-directory', () {
       expect(isHiddenEngramPath('.DS_Store'), isTrue);
