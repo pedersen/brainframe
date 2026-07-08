@@ -817,6 +817,79 @@ void main() {
       );
     });
   });
+
+  group('create within a folder (row action)', () {
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    Engram writable(EngramStore store) =>
+        Engram(id: 'w', displayName: 'W', readOnly: false, store: store);
+
+    Finder dialogField() => find.descendant(
+        of: find.byType(Dialog), matching: find.byType(TextField));
+
+    Future<void> pumpBrowser(WidgetTester tester, EngramStore store) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      setWidth(tester, 1000);
+      await tester.pumpWidget(harnessFor(repo(), writable(store)));
+      await tester.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+    }
+
+    // Open the folder row's "⋯" menu and choose a create-here item, landing on
+    // the name dialog.
+    Future<void> chooseCreate(WidgetTester tester, String item) async {
+      await tester.tap(find.byIcon(Icons.more_vert).first); // the folder (row 0)
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(item)); // "New note" / "New folder" menu item
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300)); // dialog transition
+    }
+
+    testWidgets('New note inside a folder creates and opens it there',
+        (tester) async {
+      final store = _RwStore({'notes/a.md': '# A'}, directories: {'notes'});
+      await pumpBrowser(tester, store);
+
+      await chooseCreate(tester, 'New note');
+      await tester.enterText(dialogField(), 'Fresh Idea');
+      await tester.tap(find.widgetWithText(TextButton, 'Create'));
+      await tester.pumpAndSettle();
+
+      expect(store.files['notes/Fresh Idea.md'], '# Fresh Idea\n');
+      expect(
+        tester.widget<MarkdownEditorPane>(find.byType(MarkdownEditorPane)).path,
+        'notes/Fresh Idea.md',
+      );
+    });
+
+    testWidgets('New folder inside a folder creates it nested', (tester) async {
+      final store = _RwStore({'notes/a.md': '# A'}, directories: {'notes'});
+      await pumpBrowser(tester, store);
+
+      await chooseCreate(tester, 'New folder');
+      await tester.enterText(dialogField(), 'Sub');
+      await tester.tap(find.widgetWithText(TextButton, 'Create'));
+      await tester.pumpAndSettle();
+
+      expect(store.dirs, contains('notes/Sub'));
+    });
+
+    testWidgets('a new note inside a folder avoids colliding with a sibling',
+        (tester) async {
+      final store = _RwStore(
+        {'notes/Idea.md': '# Idea'},
+        directories: {'notes'},
+      );
+      await pumpBrowser(tester, store);
+
+      await chooseCreate(tester, 'New note');
+      await tester.enterText(dialogField(), 'Idea');
+      await tester.tap(find.widgetWithText(TextButton, 'Create'));
+      await tester.pumpAndSettle();
+
+      expect(store.files.containsKey('notes/Idea 2.md'), isTrue);
+    });
+  });
 }
 
 /// An in-memory read-write store for the editing/file-management tests. Tracks
