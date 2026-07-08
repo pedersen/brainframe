@@ -45,5 +45,8 @@
   "newNote": "[Ñéŵ ñóŧé~~~]",
   "newNoteNameLabel": "[Ñóŧé ñáɱé~~~]",
   "newFolder": "[Ñéŵ ƒółđéŕ~~~~]",
-  "newFolderNameLabel": "[Ƒółđéŕ ñáɱé~~~~]"
+  "newFolderNameLabel": "[Ƒółđéŕ ñáɱé~~~~]",
+  "rowActionsTooltip": "[Áçŧíóñš ƒóŕ {name}~~~~]",
+  "rename": "[Ŕéñáɱé~~]",
+  "renameNameLabel": "[Ñéŵ ñáɱé~~~]"
 }

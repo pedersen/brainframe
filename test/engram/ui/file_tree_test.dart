@@ -168,4 +168,75 @@ void main() {
     await tester.pumpAndSettle();
     expect(latest, isEmpty);
   });
+
+  group('row action column', () {
+    testWidgets('absent without onRowAction (read-only engram)', (tester) async {
+      await tester.pumpWidget(_host(FileTree(
+        nodes: buildFileTree(['welcome.md']),
+        selectedPath: null,
+        onSelectFile: (_) {},
+      )));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+    });
+
+    testWidgets('one "⋯" button per visible row', (tester) async {
+      await tester.pumpWidget(_host(FileTree(
+        nodes: buildFileTree(['a.md', 'notes/b.md']), // a.md, notes/, b.md
+        selectedPath: null,
+        onSelectFile: (_) {},
+        onRowAction: (_, _, _) {},
+      )));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.more_vert), findsNWidgets(3));
+    });
+
+    testWidgets('the action column follows the tree when it scrolls',
+        (tester) async {
+      final files = [
+        for (var i = 0; i < 50; i++) 'note-${i.toString().padLeft(2, '0')}.md',
+      ];
+      await tester.pumpWidget(_host(FileTree(
+        nodes: buildFileTree(files),
+        selectedPath: null,
+        onSelectFile: (_) {},
+        onRowAction: (_, _, _) {},
+      )));
+      await tester.pumpAndSettle();
+
+      // Scrolling the tree drives the mirrored action column; it must track the
+      // offset without throwing and stay populated.
+      await tester.drag(find.byType(FileTree), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.more_vert), findsWidgets);
+    });
+
+    testWidgets('the "⋯" menu dispatches Rename with the row node and path',
+        (tester) async {
+      FileTreeNode? node;
+      String? path;
+      FileTreeRowAction? action;
+      await tester.pumpWidget(_host(FileTree(
+        nodes: buildFileTree(['notes/first.md']),
+        selectedPath: null,
+        onSelectFile: (_) {},
+        onRowAction: (n, p, a) {
+          node = n;
+          path = p;
+          action = a;
+        },
+      )));
+      await tester.pumpAndSettle();
+
+      // Open the file row's menu (folder row's is the other one); tap Rename.
+      await tester.tap(find.byIcon(Icons.more_vert).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+
+      expect(node?.name, 'first.md');
+      expect(path, 'notes/first.md');
+      expect(action, FileTreeRowAction.rename);
+    });
+  });
 }

@@ -260,6 +260,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
             initialCollapsed: collapsed,
             onCollapsedChanged: (set) =>
                 _prefs.setCollapsedFolders(engram.id, set),
+            onRowAction: engram.readOnly ? null : _handleRowAction,
           );
     final sidebar = _Sidebar(
       engram: engram,
@@ -358,6 +359,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
       builder: (_) => _NameInputDialog(
         title: l10n.newNote,
         label: l10n.newNoteNameLabel,
+        submitLabel: l10n.create,
       ),
     );
     if (name == null || !mounted) return; // cancelled
@@ -387,6 +389,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
       builder: (_) => _NameInputDialog(
         title: l10n.newFolder,
         label: l10n.newFolderNameLabel,
+        submitLabel: l10n.create,
       ),
     );
     if (name == null || !mounted) return; // cancelled
@@ -400,6 +403,87 @@ class _EngramBrowserState extends State<EngramBrowser> {
     if (!mounted) return;
     setState(() => _drawerOpen = false);
     _refresh();
+  }
+
+  /// Dispatches a row's "⋯" menu action.
+  Future<void> _handleRowAction(
+    FileTreeNode node,
+    String fullPath,
+    FileTreeRowAction action,
+  ) async {
+    switch (action) {
+      case FileTreeRowAction.rename:
+        await _renameEntry(node, fullPath);
+    }
+  }
+
+  /// Renames the file or folder at [fullPath]: prompts for a new name (a file
+  /// keeps its extension), avoids colliding with a same-kind sibling, moves it
+  /// through the store / `EngramFileOps`, and keeps the open file selected under
+  /// its new path.
+  Future<void> _renameEntry(FileTreeNode node, String fullPath) async {
+    final store = _contentStore;
+    if (store == null) return;
+    final l10n = AppLocalizations.of(context);
+    final isFolder = node.isFolder;
+    final extension = isFolder ? '' : _extensionOf(node.name);
+    final currentStem =
+        node.name.substring(0, node.name.length - extension.length);
+
+    final input = await showDialog<String>(
+      context: context,
+      builder: (_) => _NameInputDialog(
+        title: l10n.rename,
+        label: l10n.renameNameLabel,
+        submitLabel: l10n.rename,
+        initialValue: currentStem,
+      ),
+    );
+    if (input == null || !mounted) return;
+
+    final parent = _parentOf(fullPath);
+    final desiredStem = _sanitizeName(input);
+
+    if (isFolder) {
+      final siblings = <String>{
+        for (final directory in await store.listDirectories())
+          if (directory != fullPath && _parentOf(directory) == parent)
+            _lastSegment(directory),
+      };
+      final newName = EngramFileOps.freeName(desiredStem, siblings);
+      if (newName == node.name) return; // unchanged
+      final newPath = parent.isEmpty ? newName : '$parent/$newName';
+      await EngramFileOps(store).renameFolder(fullPath, newName);
+      if (!mounted) return;
+      _refresh(selectPath: _selectionAfterFolderMove(fullPath, newPath));
+    } else {
+      final siblingStems = <String>{
+        for (final path in await store.list())
+          if (path != fullPath &&
+              _parentOf(path) == parent &&
+              _extensionOf(_lastSegment(path)) == extension)
+            _stemOf(_lastSegment(path), extension),
+      };
+      final newStem = EngramFileOps.freeName(desiredStem, siblingStems);
+      final newName = '$newStem$extension';
+      if (newName == node.name) return; // unchanged
+      final newPath = parent.isEmpty ? newName : '$parent/$newName';
+      await store.move(fullPath, newPath);
+      if (!mounted) return;
+      _refresh(selectPath: _selectedPath == fullPath ? newPath : null);
+    }
+  }
+
+  /// The selection to restore after renaming a folder from [oldFolder] to
+  /// [newFolder]: the open file's remapped path if it lived inside, else null
+  /// (leave the current selection untouched).
+  String? _selectionAfterFolderMove(String oldFolder, String newFolder) {
+    final selected = _selectedPath;
+    final prefix = '$oldFolder/';
+    if (selected != null && selected.startsWith(prefix)) {
+      return '$newFolder/${selected.substring(prefix.length)}';
+    }
+    return null;
   }
 
   /// The file to show: the user's selection when it belongs to [paths],
@@ -417,6 +501,25 @@ class _EngramBrowserState extends State<EngramBrowser> {
 }
 
 String _fileName(String path) => path.split('/').last;
+
+/// The engram-relative parent folder of [path] (`''` for a top-level entry).
+String _parentOf(String path) {
+  final slash = path.lastIndexOf('/');
+  return slash == -1 ? '' : path.substring(0, slash);
+}
+
+String _lastSegment(String path) => path.split('/').last;
+
+/// The file extension of [name] *including* the leading dot (`.md`), or `''`
+/// when it has none or is a dotfile.
+String _extensionOf(String name) {
+  final dot = name.lastIndexOf('.');
+  return dot <= 0 ? '' : name.substring(dot);
+}
+
+/// [name] with its [extension] (as returned by [_extensionOf]) removed.
+String _stemOf(String name, String extension) =>
+    name.substring(0, name.length - extension.length);
 
 /// A filesystem-safe name from a user-entered [name], shared by new notes and
 /// new folders: path separators become dashes, runs of whitespace collapse, and
@@ -445,20 +548,34 @@ String _noteTitle(String stem) {
 }
 
 /// A name-prompt dialog with the given [title] and field [label], shared by the
-/// new-note and new-folder actions. Pops its text on submit (Create or the
-/// keyboard action), or null on Cancel.
+/// new-note, new-folder, and rename actions. [initialValue] pre-fills the field
+/// (with the text pre-selected, for rename); [submitLabel] names the confirm
+/// button. Pops its text on submit (the button or the keyboard action), or null
+/// on Cancel.
 class _NameInputDialog extends StatefulWidget {
-  const _NameInputDialog({required this.title, required this.label});
+  const _NameInputDialog({
+    required this.title,
+    required this.label,
+    required this.submitLabel,
+    this.initialValue = '',
+  });
 
   final String title;
   final String label;
+  final String submitLabel;
+  final String initialValue;
 
   @override
   State<_NameInputDialog> createState() => _NameInputDialogState();
 }
 
 class _NameInputDialogState extends State<_NameInputDialog> {
-  final TextEditingController _controller = TextEditingController();
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialValue,
+  )..selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: widget.initialValue.length,
+    );
 
   @override
   void dispose() {
@@ -484,7 +601,7 @@ class _NameInputDialogState extends State<_NameInputDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
-        TextButton(onPressed: _submit, child: Text(l10n.create)),
+        TextButton(onPressed: _submit, child: Text(widget.submitLabel)),
       ],
     );
   }
