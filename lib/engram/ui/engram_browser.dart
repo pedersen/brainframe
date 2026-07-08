@@ -414,7 +414,51 @@ class _EngramBrowserState extends State<EngramBrowser> {
     switch (action) {
       case FileTreeRowAction.rename:
         await _renameEntry(node, fullPath);
+      case FileTreeRowAction.delete:
+        await _deleteEntry(node, fullPath);
     }
+  }
+
+  /// Deletes the file or folder at [fullPath] after a confirmation. A file goes
+  /// through `store.delete`; a folder (and everything in it) through
+  /// `EngramFileOps.deleteFolder`. The listing is refreshed; if the open file
+  /// was the target (or lived inside a deleted folder) it is no longer in the
+  /// list, so `_effectiveSelection` falls back on its own.
+  Future<void> _deleteEntry(FileTreeNode node, String fullPath) async {
+    final store = _contentStore;
+    if (store == null) return;
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog.adaptive(
+        title: Text(l10n.deleteConfirmTitle),
+        content: Text(node.isFolder
+            ? l10n.deleteFolderConfirm(node.name)
+            : l10n.deleteFileConfirm(node.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    if (node.isFolder) {
+      await EngramFileOps(store).deleteFolder(fullPath);
+    } else {
+      await store.delete(fullPath);
+    }
+    if (!mounted) return;
+    _refresh();
   }
 
   /// Renames the file or folder at [fullPath]: prompts for a new name (a file

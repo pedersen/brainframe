@@ -48,5 +48,9 @@
   "newFolderNameLabel": "[Ƒółđéŕ ñáɱé~~~~]",
   "rowActionsTooltip": "[Áçŧíóñš ƒóŕ {name}~~~~]",
   "rename": "[Ŕéñáɱé~~]",
-  "renameNameLabel": "[Ñéŵ ñáɱé~~~]"
+  "renameNameLabel": "[Ñéŵ ñáɱé~~~]",
+  "delete": "[Đéłéŧé~~]",
+  "deleteConfirmTitle": "[Đéłéŧé?~~~]",
+  "deleteFileConfirm": "[Đéłéŧé “{name}”? Ŧħíš çáñ’ŧ ƀé úñđóñé.~~~~~~~~~~~]",
+  "deleteFolderConfirm": "[Đéłéŧé “{name}” áñđ évéŕýŧħíñǵ íñ íŧ? Ŧħíš çáñ’ŧ ƀé úñđóñé.~~~~~~~~~~~~~~~~~~]"
 }

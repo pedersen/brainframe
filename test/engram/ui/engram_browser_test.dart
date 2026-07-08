@@ -726,6 +726,97 @@ void main() {
       expect(store.files.containsKey('nope.md'), isFalse);
     });
   });
+
+  group('delete (row action)', () {
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    Engram writable(EngramStore store) =>
+        Engram(id: 'w', displayName: 'W', readOnly: false, store: store);
+
+    Future<void> pumpBrowser(WidgetTester tester, EngramStore store) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      setWidth(tester, 1000);
+      await tester.pumpWidget(harnessFor(repo(), writable(store)));
+      await tester.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+    }
+
+    // Open a row's "⋯" menu (by index) and pick Delete → the confirm dialog.
+    Future<void> chooseDelete(WidgetTester tester, {required int row}) async {
+      await tester.tap(find.byIcon(Icons.more_vert).at(row));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete')); // menu item
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300)); // dialog transition
+    }
+
+    testWidgets('deletes a file after confirming', (tester) async {
+      final store = _RwStore({'welcome.md': '# W', 'other.md': '# O'});
+      await pumpBrowser(tester, store);
+
+      // Rows sort alphabetically: other.md (0), welcome.md (1).
+      await chooseDelete(tester, row: 1); // welcome.md
+      await tester.tap(find.widgetWithText(TextButton, 'Delete')); // confirm
+      await tester.pumpAndSettle();
+
+      expect(store.files.containsKey('welcome.md'), isFalse);
+      expect(store.files.containsKey('other.md'), isTrue);
+    });
+
+    testWidgets('Cancel keeps the file', (tester) async {
+      final store = _RwStore({'welcome.md': '# W'});
+      await pumpBrowser(tester, store);
+
+      await chooseDelete(tester, row: 0);
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(store.files.containsKey('welcome.md'), isTrue);
+    });
+
+    testWidgets('deletes a folder and everything in it', (tester) async {
+      final store = _RwStore(
+        {'notes/a.md': '# A', 'notes/b.md': '# B', 'keep.md': '# K'},
+        directories: {'notes'},
+      );
+      await pumpBrowser(tester, store);
+
+      // Rows: notes (0), a.md (1), b.md (2), keep.md (3).
+      await chooseDelete(tester, row: 0); // the notes folder
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(store.files.keys.where((p) => p.startsWith('notes/')), isEmpty);
+      expect(store.files.containsKey('keep.md'), isTrue);
+      expect(store.dirs.contains('notes'), isFalse);
+    });
+
+    testWidgets('deleting the open file falls back to another selection',
+        (tester) async {
+      final store = _RwStore({'welcome.md': '# W', 'other.md': '# O'});
+      await pumpBrowser(tester, store);
+
+      // welcome.md is preferred (auto-shown); open other.md explicitly so it is
+      // the selection the delete must clear.
+      await tester.tap(find.text('other.md'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<MarkdownEditorPane>(find.byType(MarkdownEditorPane)).path,
+        'other.md',
+      );
+
+      await chooseDelete(tester, row: 0); // other.md
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(store.files.containsKey('other.md'), isFalse);
+      // Selection fell back to the remaining preferred file.
+      expect(
+        tester.widget<MarkdownEditorPane>(find.byType(MarkdownEditorPane)).path,
+        'welcome.md',
+      );
+    });
+  });
 }
 
 /// An in-memory read-write store for the editing/file-management tests. Tracks
