@@ -275,5 +275,51 @@ void main() {
 
       expect(action, FileTreeRowAction.delete);
     });
+
+    testWidgets('a folder row menu offers create-here and dispatches it',
+        (tester) async {
+      FileTreeNode? node;
+      String? path;
+      FileTreeRowAction? action;
+      await tester.pumpWidget(_host(FileTree(
+        nodes: buildFileTree(['notes/a.md']), // notes (0), a.md (1)
+        selectedPath: null,
+        onSelectFile: (_) {},
+        onRowAction: (n, p, a) {
+          node = n;
+          path = p;
+          action = a;
+        },
+      )));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert).first); // the notes folder
+      await tester.pumpAndSettle();
+      expect(find.text('New note'), findsOneWidget);
+      expect(find.text('New folder'), findsOneWidget);
+
+      await tester.tap(find.text('New note'));
+      await tester.pumpAndSettle();
+      expect(node?.name, 'notes');
+      expect(path, 'notes');
+      expect(action, FileTreeRowAction.newNoteHere);
+    });
+
+    testWidgets('a file row menu has no create-here items', (tester) async {
+      await tester.pumpWidget(_host(FileTree(
+        nodes: buildFileTree(['welcome.md']),
+        selectedPath: null,
+        onSelectFile: (_) {},
+        onRowAction: (_, _, _) {},
+      )));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert).first); // the file row
+      await tester.pumpAndSettle();
+      expect(find.text('Rename'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
+      expect(find.text('New note'), findsNothing);
+      expect(find.text('New folder'), findsNothing);
+    });
   });
 }

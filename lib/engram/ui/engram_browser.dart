@@ -346,11 +346,12 @@ class _EngramBrowserState extends State<EngramBrowser> {
         _drawerOpen = false;
       });
 
-  /// Prompts for a name and creates a new top-level Markdown note, seeded with
-  /// an H1 derived from the name, then selects it (opening it in Edit) and
-  /// closes the drawer. A collision with an existing note is avoided with the
-  /// same "Name", "Name 2" numbering the store uses for folders.
-  Future<void> _newNote() async {
+  /// Prompts for a name and creates a new Markdown note inside [parent] (the
+  /// engram root when empty), seeded with an H1 derived from the name, then
+  /// selects it (opening it in Edit) and closes the drawer. A collision with an
+  /// existing note in that folder is avoided with the same "Name", "Name 2"
+  /// numbering the store uses for folders.
+  Future<void> _newNote({String parent = ''}) async {
     final store = _contentStore;
     if (store == null) return;
     final l10n = AppLocalizations.of(context);
@@ -366,21 +367,23 @@ class _EngramBrowserState extends State<EngramBrowser> {
 
     final existingStems = <String>{
       for (final path in await store.list())
-        if (!path.contains('/') && path.toLowerCase().endsWith('.md'))
-          path.substring(0, path.length - '.md'.length),
+        if (_parentOf(path) == parent &&
+            _lastSegment(path).toLowerCase().endsWith('.md'))
+          _stemOf(_lastSegment(path), '.md'),
     };
     final stem = EngramFileOps.freeName(_sanitizeName(name), existingStems);
-    final notePath = '$stem.md';
+    final notePath = parent.isEmpty ? '$stem.md' : '$parent/$stem.md';
     await store.writeString(notePath, '# ${_noteTitle(stem)}\n');
     if (!mounted) return;
     setState(() => _drawerOpen = false);
     _refresh(selectPath: notePath);
   }
 
-  /// Prompts for a name and creates a new empty top-level folder (visible in the
-  /// tree via [EngramStore.listDirectories]), avoiding a collision with an
-  /// existing top-level folder using the same "Name", "Name 2" numbering.
-  Future<void> _newFolder() async {
+  /// Prompts for a name and creates a new empty folder inside [parent] (the
+  /// engram root when empty), visible in the tree via
+  /// [EngramStore.listDirectories], avoiding a collision with an existing folder
+  /// in that parent using the same "Name", "Name 2" numbering.
+  Future<void> _newFolder({String parent = ''}) async {
     final store = _contentStore;
     if (store == null) return;
     final l10n = AppLocalizations.of(context);
@@ -396,10 +399,11 @@ class _EngramBrowserState extends State<EngramBrowser> {
 
     final existing = <String>{
       for (final directory in await store.listDirectories())
-        if (!directory.contains('/')) directory, // top-level folder names
+        if (_parentOf(directory) == parent) _lastSegment(directory),
     };
     final folder = EngramFileOps.freeName(_sanitizeName(name), existing);
-    await store.createDirectory(folder);
+    final folderPath = parent.isEmpty ? folder : '$parent/$folder';
+    await store.createDirectory(folderPath);
     if (!mounted) return;
     setState(() => _drawerOpen = false);
     _refresh();
@@ -416,6 +420,10 @@ class _EngramBrowserState extends State<EngramBrowser> {
         await _renameEntry(node, fullPath);
       case FileTreeRowAction.delete:
         await _deleteEntry(node, fullPath);
+      case FileTreeRowAction.newNoteHere:
+        await _newNote(parent: fullPath);
+      case FileTreeRowAction.newFolderHere:
+        await _newFolder(parent: fullPath);
     }
   }
 
