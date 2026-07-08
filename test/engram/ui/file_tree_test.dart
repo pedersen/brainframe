@@ -169,6 +169,25 @@ void main() {
     expect(latest, isEmpty);
   });
 
+  testWidgets('rows sit on a local Material so hover ink stays in the tree',
+      (tester) async {
+    // Without a Material inside the tree, row hover/splash ink paints on the
+    // far Scaffold material and a wide row bleeds its highlight across the
+    // editor. This guards the transparency Material that clips it locally.
+    await tester.pumpWidget(_host(FileTree(
+      nodes: buildFileTree(['welcome.md']),
+      selectedPath: null,
+      onSelectFile: (_) {},
+    )));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+          of: find.byType(FileTree), matching: find.byType(Material)),
+      findsWidgets,
+    );
+  });
+
   group('row action column', () {
     testWidgets('absent without onRowAction (read-only engram)', (tester) async {
       await tester.pumpWidget(_host(FileTree(

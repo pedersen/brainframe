@@ -180,15 +180,22 @@ class _FileTreeState extends State<FileTree> {
               child: SizedBox(
                 width: contentWidth,
                 height: constraints.maxHeight,
-                child: ListView.builder(
-                  controller: _verticalController,
-                  primary: false,
-                  // Fixed row height: aligns the action column row-for-row and
-                  // lets the lazy list skip per-row measurement.
-                  itemExtent: rowExtent,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: rows.length,
-                  itemBuilder: (context, index) => _buildRow(rows[index]),
+                // A local ink surface: without it, row hover/splash paints on
+                // the far Scaffold material and a row wider than the sidebar
+                // bleeds its highlight across the editor. Inside the scroll
+                // view, so the ink is clipped to the tree's viewport.
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: ListView.builder(
+                    controller: _verticalController,
+                    primary: false,
+                    // Fixed row height: aligns the action column row-for-row
+                    // and lets the lazy list skip per-row measurement.
+                    itemExtent: rowExtent,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: rows.length,
+                    itemBuilder: (context, index) => _buildRow(rows[index]),
+                  ),
                 ),
               ),
             ),
@@ -477,23 +484,28 @@ class _ActionColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 48,
-      child: ListView.builder(
-        controller: controller,
-        primary: false,
-        // Driven by the tree's scroll (see _mirrorScrollToActionColumn); never
-        // scrolls on its own, so it can't drift out of alignment.
-        physics: const NeverScrollableScrollPhysics(),
-        itemExtent: rowExtent,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: rows.length,
-        itemBuilder: (context, index) {
-          final row = rows[index];
-          return _RowActionButton(
-            node: row.node,
-            fullPath: row.fullPath,
-            onRowAction: onRowAction,
-          );
-        },
+      // Local ink surface so the "⋯" button splashes stay within the column,
+      // matching the tree (see the note in _treeView).
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListView.builder(
+          controller: controller,
+          primary: false,
+          // Driven by the tree's scroll (see _mirrorScrollToActionColumn);
+          // never scrolls on its own, so it can't drift out of alignment.
+          physics: const NeverScrollableScrollPhysics(),
+          itemExtent: rowExtent,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: rows.length,
+          itemBuilder: (context, index) {
+            final row = rows[index];
+            return _RowActionButton(
+              node: row.node,
+              fullPath: row.fullPath,
+              onRowAction: onRowAction,
+            );
+          },
+        ),
       ),
     );
   }
