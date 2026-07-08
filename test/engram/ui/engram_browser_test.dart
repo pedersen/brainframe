@@ -890,6 +890,127 @@ void main() {
       expect(store.files.containsKey('notes/Idea 2.md'), isTrue);
     });
   });
+
+  group('move (row action)', () {
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    Engram writable(EngramStore store) =>
+        Engram(id: 'w', displayName: 'W', readOnly: false, store: store);
+
+    Future<void> pumpBrowser(WidgetTester tester, EngramStore store) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      setWidth(tester, 1000);
+      await tester.pumpWidget(harnessFor(repo(), writable(store)));
+      await tester.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+    }
+
+    // Open a row's "⋯" menu (by index) and pick Move → the folder picker.
+    Future<void> chooseMove(WidgetTester tester, {required int row}) async {
+      await tester.tap(find.byIcon(Icons.more_vert).at(row));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Move')); // menu item
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300)); // picker transition
+    }
+
+    // Tap a destination inside the picker dialog (disambiguated from the tree).
+    Future<void> pickAndConfirm(WidgetTester tester, String folderLabel) async {
+      await tester.tap(find.descendant(
+          of: find.byType(Dialog), matching: find.text(folderLabel)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Move'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('moves a file into a folder', (tester) async {
+      final store = _RwStore(
+        {'welcome.md': '# W', 'archive/old.md': '# O'},
+        directories: {'archive'},
+      );
+      await pumpBrowser(tester, store);
+
+      // Rows: archive (0), old.md (1), welcome.md (2).
+      await chooseMove(tester, row: 2); // welcome.md
+      await pickAndConfirm(tester, 'archive');
+
+      expect(store.files.containsKey('welcome.md'), isFalse);
+      expect(store.files['archive/welcome.md'], '# W');
+    });
+
+    testWidgets('moves a folder into another folder', (tester) async {
+      final store = _RwStore(
+        {'notes/a.md': '# A', 'archive/old.md': '# O'},
+        directories: {'notes', 'archive'},
+      );
+      await pumpBrowser(tester, store);
+
+      // Rows: archive (0), old.md (1), notes (2), a.md (3).
+      await chooseMove(tester, row: 2); // the notes folder
+      await pickAndConfirm(tester, 'archive');
+
+      expect(store.files['archive/notes/a.md'], '# A');
+      expect(store.files.containsKey('notes/a.md'), isFalse);
+      expect(store.dirs, contains('archive/notes'));
+    });
+
+    testWidgets('a move avoids colliding at the destination', (tester) async {
+      final store = _RwStore(
+        {'welcome.md': '# New', 'archive/welcome.md': '# Old'},
+        directories: {'archive'},
+      );
+      await pumpBrowser(tester, store);
+
+      // Rows: archive (0), welcome.md [in archive] (1), welcome.md [root] (2).
+      await chooseMove(tester, row: 2); // the root welcome.md
+      await pickAndConfirm(tester, 'archive');
+
+      expect(store.files['archive/welcome 2.md'], '# New');
+      expect(store.files['archive/welcome.md'], '# Old'); // untouched
+    });
+
+    testWidgets('a folder cannot be moved into itself or a descendant',
+        (tester) async {
+      final store = _RwStore(
+        {'notes/sub/a.md': '# A'},
+        directories: {'notes', 'notes/sub'},
+      );
+      await pumpBrowser(tester, store);
+
+      // Rows: notes (0), sub (1), a.md (2).
+      await chooseMove(tester, row: 0); // the notes folder
+
+      // Its own subtree is not offered, and (at root) there is nowhere else.
+      expect(
+        find.descendant(of: find.byType(Dialog), matching: find.text('sub')),
+        findsNothing,
+      );
+      expect(find.text('No other folder to move to.'), findsOneWidget);
+    });
+
+    testWidgets('moving the open file keeps it selected at its new path',
+        (tester) async {
+      final store = _RwStore(
+        {'welcome.md': '# W', 'zeta.md': '# Z', 'archive/x.md': '# X'},
+        directories: {'archive'},
+      );
+      await pumpBrowser(tester, store);
+
+      // welcome.md is preferred (auto-shown); open zeta.md (tree only).
+      await tester.tap(find.text('zeta.md'));
+      await tester.pumpAndSettle();
+
+      // Rows: archive (0), x.md (1), welcome.md (2), zeta.md (3).
+      await chooseMove(tester, row: 3); // zeta.md
+      await pickAndConfirm(tester, 'archive');
+
+      expect(store.files['archive/zeta.md'], '# Z');
+      expect(
+        tester.widget<MarkdownEditorPane>(find.byType(MarkdownEditorPane)).path,
+        'archive/zeta.md',
+      );
+    });
+  });
 }
 
 /// An in-memory read-write store for the editing/file-management tests. Tracks

@@ -10,7 +10,7 @@ import 'file_tree_node.dart';
 /// from the actions, so the trigger can change later without touching the
 /// action wiring above. [newNoteHere] / [newFolderHere] are offered on folder
 /// rows only.
-enum FileTreeRowAction { rename, delete, newNoteHere, newFolderHere }
+enum FileTreeRowAction { rename, move, delete, newNoteHere, newFolderHere }
 
 /// The read-only file browser: a shallow folder tree over an engram's files.
 ///
@@ -536,6 +536,10 @@ class _RowActionButton extends StatelessWidget {
         PopupMenuItem<FileTreeRowAction>(
           value: FileTreeRowAction.rename,
           child: Text(l10n.rename),
+        ),
+        PopupMenuItem<FileTreeRowAction>(
+          value: FileTreeRowAction.move,
+          child: Text(l10n.move),
         ),
         PopupMenuItem<FileTreeRowAction>(
           value: FileTreeRowAction.delete,
