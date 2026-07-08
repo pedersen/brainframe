@@ -257,5 +257,23 @@ void main() {
       expect(path, 'notes/first.md');
       expect(action, FileTreeRowAction.rename);
     });
+
+    testWidgets('the "⋯" menu dispatches Delete', (tester) async {
+      FileTreeRowAction? action;
+      await tester.pumpWidget(_host(FileTree(
+        nodes: buildFileTree(['welcome.md']),
+        selectedPath: null,
+        onSelectFile: (_) {},
+        onRowAction: (_, _, a) => action = a,
+      )));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(action, FileTreeRowAction.delete);
+    });
   });
 }

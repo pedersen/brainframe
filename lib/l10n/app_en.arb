@@ -271,5 +271,31 @@
   "renameNameLabel": "New name",
   "@renameNameLabel": {
     "description": "Text-field label in the rename dialog where the user types the new name."
+  },
+
+  "delete": "Delete",
+  "@delete": {
+    "description": "Row-action menu item, and confirm button, for deleting a file or folder."
+  },
+
+  "deleteConfirmTitle": "Delete?",
+  "@deleteConfirmTitle": {
+    "description": "Title of the confirmation dialog shown before deleting a file or folder."
+  },
+
+  "deleteFileConfirm": "Delete “{name}”? This can’t be undone.",
+  "@deleteFileConfirm": {
+    "description": "Confirmation message before deleting a single file.",
+    "placeholders": {
+      "name": { "type": "String", "example": "welcome.md" }
+    }
+  },
+
+  "deleteFolderConfirm": "Delete “{name}” and everything in it? This can’t be undone.",
+  "@deleteFolderConfirm": {
+    "description": "Confirmation message before deleting a folder and all its contents.",
+    "placeholders": {
+      "name": { "type": "String", "example": "notes" }
+    }
   }
 }

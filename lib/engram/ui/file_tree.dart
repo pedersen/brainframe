@@ -9,7 +9,7 @@ import 'file_tree_node.dart';
 /// the stable seam: how it is *triggered* (a pinned column here) is decoupled
 /// from the actions, so the trigger can change later without touching the
 /// action wiring above.
-enum FileTreeRowAction { rename }
+enum FileTreeRowAction { rename, delete }
 
 /// The read-only file browser: a shallow folder tree over an engram's files.
 ///
@@ -535,6 +535,10 @@ class _RowActionButton extends StatelessWidget {
         PopupMenuItem<FileTreeRowAction>(
           value: FileTreeRowAction.rename,
           child: Text(l10n.rename),
+        ),
+        PopupMenuItem<FileTreeRowAction>(
+          value: FileTreeRowAction.delete,
+          child: Text(l10n.delete),
         ),
       ],
     );
