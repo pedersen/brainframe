@@ -5,6 +5,12 @@ import 'package:flutter/material.dart';
 import '../../l10n/gen/app_localizations.dart';
 import 'file_tree_node.dart';
 
+/// An action a user can invoke on a file-tree row via its "⋯" menu. The menu is
+/// the stable seam: how it is *triggered* (a pinned column here) is decoupled
+/// from the actions, so the trigger can change later without touching the
+/// action wiring above.
+enum FileTreeRowAction { rename }
+
 /// The read-only file browser: a shallow folder tree over an engram's files.
 ///
 /// Folders expand/collapse in place (all open by default, so a small engram
@@ -26,6 +32,7 @@ class FileTree extends StatefulWidget {
     required this.onSelectFile,
     this.initialCollapsed = const <String>{},
     this.onCollapsedChanged,
+    this.onRowAction,
   });
 
   /// The roots of the tree (see [buildFileTree]).
@@ -46,6 +53,15 @@ class FileTree extends StatefulWidget {
   /// is a notification, not a controlling input.
   final void Function(Set<String> collapsed)? onCollapsedChanged;
 
+  /// Invoked when a row's "⋯" menu action is chosen, with the row's [node], its
+  /// engram-relative [fullPath], and the [action]. Null for a read-only engram,
+  /// which shows no action column at all.
+  final void Function(
+    FileTreeNode node,
+    String fullPath,
+    FileTreeRowAction action,
+  )? onRowAction;
+
   @override
   State<FileTree> createState() => _FileTreeState();
 }
@@ -63,6 +79,12 @@ class _FileTreeState extends State<FileTree> {
   final ScrollController _verticalController = ScrollController();
   final ScrollController _horizontalController = ScrollController();
 
+  // Drives the pinned action column so it scrolls in lockstep with the tree.
+  // The column never scrolls on its own (NeverScrollableScrollPhysics); this
+  // one-way mirror keeps the "⋯" buttons aligned to their rows. Both lists use
+  // the same itemExtent, so mirroring the offset aligns row-for-row exactly.
+  final ScrollController _actionController = ScrollController();
+
   // Memoized widest-row measurement (see [_contentWidth]). Invalidated when the
   // node set, the collapsed set, or the text scale changes — not on scroll,
   // resize, or selection, which is what keeps large engrams responsive.
@@ -72,9 +94,24 @@ class _FileTreeState extends State<FileTree> {
   double? _cachedScaleProbe;
 
   @override
+  void initState() {
+    super.initState();
+    _verticalController.addListener(_mirrorScrollToActionColumn);
+  }
+
+  void _mirrorScrollToActionColumn() {
+    if (!_actionController.hasClients) return;
+    final target = _verticalController.offset
+        .clamp(0.0, _actionController.position.maxScrollExtent);
+    if (_actionController.offset != target) _actionController.jumpTo(target);
+  }
+
+  @override
   void dispose() {
+    _verticalController.removeListener(_mirrorScrollToActionColumn);
     _verticalController.dispose();
     _horizontalController.dispose();
+    _actionController.dispose();
     super.dispose();
   }
 
@@ -97,7 +134,30 @@ class _FileTreeState extends State<FileTree> {
     // (one object per visible node); the expensive width measurement over it is
     // memoized separately.
     final rows = _visibleRows();
+    final rowExtent = _rowExtent(context);
+    final tree = _treeView(rows, rowExtent);
 
+    // Read-only engram: no action column, so the tree is exactly as before.
+    if (widget.onRowAction == null) return tree;
+
+    // Writable engram: pin an always-visible "⋯" action column beside the
+    // horizontally-scrolling tree, so a long file name can never push the row
+    // actions off-screen.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: tree),
+        _ActionColumn(
+          rows: rows,
+          rowExtent: rowExtent,
+          controller: _actionController,
+          onRowAction: widget.onRowAction!,
+        ),
+      ],
+    );
+  }
+
+  Widget _treeView(List<_Row> rows, double rowExtent) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final contentWidth =
@@ -120,12 +180,22 @@ class _FileTreeState extends State<FileTree> {
               child: SizedBox(
                 width: contentWidth,
                 height: constraints.maxHeight,
-                child: ListView.builder(
-                  controller: _verticalController,
-                  primary: false,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: rows.length,
-                  itemBuilder: (context, index) => _buildRow(rows[index]),
+                // A local ink surface: without it, row hover/splash paints on
+                // the far Scaffold material and a row wider than the sidebar
+                // bleeds its highlight across the editor. Inside the scroll
+                // view, so the ink is clipped to the tree's viewport.
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: ListView.builder(
+                    controller: _verticalController,
+                    primary: false,
+                    // Fixed row height: aligns the action column row-for-row
+                    // and lets the lazy list skip per-row measurement.
+                    itemExtent: rowExtent,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: rows.length,
+                    itemBuilder: (context, index) => _buildRow(rows[index]),
+                  ),
                 ),
               ),
             ),
@@ -133,6 +203,14 @@ class _FileTreeState extends State<FileTree> {
         );
       },
     );
+  }
+
+  /// The uniform per-row height for both the tree and the action column: a
+  /// single-line row scaled by the text scale, never below the 48px tap target.
+  double _rowExtent(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final fontSize = Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14.0;
+    return math.max(48.0, scaler.scale(fontSize) * 1.4 + 16);
   }
 
   /// Flattens the tree into the currently-visible rows, honoring collapse
@@ -383,6 +461,82 @@ class _FileRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The pinned column of "⋯" row-action buttons, one per visible row, mirroring
+/// the tree's vertical scroll so each button stays aligned with its row.
+class _ActionColumn extends StatelessWidget {
+  const _ActionColumn({
+    required this.rows,
+    required this.rowExtent,
+    required this.controller,
+    required this.onRowAction,
+  });
+
+  final List<_Row> rows;
+  final double rowExtent;
+  final ScrollController controller;
+  final void Function(FileTreeNode, String, FileTreeRowAction) onRowAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 48,
+      // Local ink surface so the "⋯" button splashes stay within the column,
+      // matching the tree (see the note in _treeView).
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListView.builder(
+          controller: controller,
+          primary: false,
+          // Driven by the tree's scroll (see _mirrorScrollToActionColumn);
+          // never scrolls on its own, so it can't drift out of alignment.
+          physics: const NeverScrollableScrollPhysics(),
+          itemExtent: rowExtent,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: rows.length,
+          itemBuilder: (context, index) {
+            final row = rows[index];
+            return _RowActionButton(
+              node: row.node,
+              fullPath: row.fullPath,
+              onRowAction: onRowAction,
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// One row's "⋯" menu button. The menu is the stable seam; the chosen action is
+/// dispatched to [onRowAction] above the tree, independent of this trigger.
+class _RowActionButton extends StatelessWidget {
+  const _RowActionButton({
+    required this.node,
+    required this.fullPath,
+    required this.onRowAction,
+  });
+
+  final FileTreeNode node;
+  final String fullPath;
+  final void Function(FileTreeNode, String, FileTreeRowAction) onRowAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return PopupMenuButton<FileTreeRowAction>(
+      icon: const Icon(Icons.more_vert),
+      tooltip: l10n.rowActionsTooltip(node.name),
+      onSelected: (action) => onRowAction(node, fullPath, action),
+      itemBuilder: (context) => <PopupMenuEntry<FileTreeRowAction>>[
+        PopupMenuItem<FileTreeRowAction>(
+          value: FileTreeRowAction.rename,
+          child: Text(l10n.rename),
+        ),
+      ],
     );
   }
 }

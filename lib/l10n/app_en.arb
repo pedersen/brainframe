@@ -253,5 +253,23 @@
   "newFolderNameLabel": "Folder name",
   "@newFolderNameLabel": {
     "description": "Text-field label in the new-folder dialog where the user types the folder's name."
+  },
+
+  "rowActionsTooltip": "Actions for {name}",
+  "@rowActionsTooltip": {
+    "description": "Tooltip and screen-reader label for a file-tree row's \"⋯\" action-menu button.",
+    "placeholders": {
+      "name": { "type": "String", "example": "welcome.md" }
+    }
+  },
+
+  "rename": "Rename",
+  "@rename": {
+    "description": "Row-action menu item, and title of the rename dialog, for renaming a file or folder."
+  },
+
+  "renameNameLabel": "New name",
+  "@renameNameLabel": {
+    "description": "Text-field label in the rename dialog where the user types the new name."
   }
 }

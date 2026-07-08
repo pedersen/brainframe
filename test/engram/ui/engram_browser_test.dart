@@ -610,6 +610,122 @@ void main() {
       expect(store.dirs, isEmpty);
     });
   });
+
+  group('rename (row action)', () {
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    Engram writable(EngramStore store) =>
+        Engram(id: 'w', displayName: 'W', readOnly: false, store: store);
+
+    Finder dialogField() => find.descendant(
+        of: find.byType(Dialog), matching: find.byType(TextField));
+
+    Future<void> pumpBrowser(WidgetTester tester, EngramStore store) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      setWidth(tester, 1000);
+      await tester.pumpWidget(harnessFor(repo(), writable(store)));
+      await tester.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+    }
+
+    // Open a row's "⋯" menu (by index among visible rows) and pick Rename,
+    // landing on the prefilled rename dialog.
+    Future<void> openRename(WidgetTester tester, {required int row}) async {
+      await tester.tap(find.byIcon(Icons.more_vert).at(row));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename')); // the menu item
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300)); // dialog transition
+    }
+
+    testWidgets('a read-only engram has no row actions', (tester) async {
+      setWidth(tester, 1000);
+      await tester.pumpWidget(harness(repo())); // tutorial: read-only
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+    });
+
+    testWidgets('renames a file, keeping its extension and selection',
+        (tester) async {
+      final store = _RwStore({'welcome.md': '# W'});
+      await pumpBrowser(tester, store);
+
+      await openRename(tester, row: 0); // the single file row
+      await tester.enterText(dialogField(), 'intro');
+      await tester.tap(find.widgetWithText(TextButton, 'Rename'));
+      await tester.pumpAndSettle();
+
+      expect(store.files.containsKey('welcome.md'), isFalse);
+      expect(store.files['intro.md'], '# W');
+      final pane =
+          tester.widget<MarkdownEditorPane>(find.byType(MarkdownEditorPane));
+      expect(pane.path, 'intro.md'); // still selected under the new name
+    });
+
+    testWidgets('renames a folder and remaps the open file', (tester) async {
+      // welcome.md is preferred, so it is shown first; explicitly opening
+      // notes/a.md sets the selection that the rename must remap (and welcome.md
+      // would be the fallback if the remap failed, so this can't pass by luck).
+      final store = _RwStore(
+        {'notes/a.md': '# A', 'welcome.md': '# W'},
+        directories: {'notes'},
+      );
+      await pumpBrowser(tester, store);
+      await tester.tap(find.text('a.md')); // a.md is only in the tree, not open
+      await tester.pumpAndSettle();
+
+      await openRename(tester, row: 0); // the folder row (notes)
+      await tester.enterText(dialogField(), 'ideas');
+      await tester.tap(find.widgetWithText(TextButton, 'Rename'));
+      await tester.pumpAndSettle();
+
+      expect(store.files.containsKey('notes/a.md'), isFalse);
+      expect(store.files['ideas/a.md'], '# A');
+      final pane =
+          tester.widget<MarkdownEditorPane>(find.byType(MarkdownEditorPane));
+      expect(pane.path, 'ideas/a.md'); // selection remapped into the new folder
+    });
+
+    testWidgets('a folder rename avoids colliding with a sibling folder',
+        (tester) async {
+      final store = _RwStore({}, directories: {'notes', 'ideas'});
+      await pumpBrowser(tester, store);
+
+      // Folders sort alphabetically: ideas (0), notes (1).
+      await openRename(tester, row: 1); // notes
+      await tester.enterText(dialogField(), 'ideas');
+      await tester.tap(find.widgetWithText(TextButton, 'Rename'));
+      await tester.pumpAndSettle();
+
+      expect(store.dirs, contains('ideas 2'));
+    });
+
+    testWidgets('a file rename avoids colliding with a sibling', (tester) async {
+      final store = _RwStore({'welcome.md': '# W', 'intro.md': '# I'});
+      await pumpBrowser(tester, store);
+
+      // Rows sort alphabetically: intro.md (0), welcome.md (1).
+      await openRename(tester, row: 1); // welcome.md
+      await tester.enterText(dialogField(), 'intro');
+      await tester.tap(find.widgetWithText(TextButton, 'Rename'));
+      await tester.pumpAndSettle();
+
+      expect(store.files.containsKey('intro 2.md'), isTrue);
+    });
+
+    testWidgets('Cancel leaves the file unchanged', (tester) async {
+      final store = _RwStore({'welcome.md': '# W'});
+      await pumpBrowser(tester, store);
+
+      await openRename(tester, row: 0);
+      await tester.enterText(dialogField(), 'nope');
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(store.files.containsKey('welcome.md'), isTrue);
+      expect(store.files.containsKey('nope.md'), isFalse);
+    });
+  });
 }
 
 /// An in-memory read-write store for the editing/file-management tests. Tracks
@@ -632,12 +748,32 @@ class _RwStore extends EngramStore {
       Uint8List.fromList(utf8.encode(files[path]!));
 
   @override
-  Future<void> writeBytes(String path, Uint8List bytes) async =>
-      files[path] = utf8.decode(bytes);
+  Future<void> writeBytes(String path, Uint8List bytes) async {
+    files[path] = utf8.decode(bytes);
+    _registerParents(path);
+  }
+
+  @override
+  Future<void> move(String from, String to) async {
+    final content = files.remove(from);
+    if (content == null) throw StateError('no such file: $from');
+    files[to] = content;
+    _registerParents(to);
+  }
+
+  @override
+  Future<void> delete(String path) async => files.remove(path);
 
   @override
   Future<void> createDirectory(String path) async {
     dirs.add(path);
+    _registerParents(path);
+  }
+
+  @override
+  Future<void> deleteDirectory(String path) async => dirs.remove(path);
+
+  void _registerParents(String path) {
     final segments = path.split('/');
     for (var i = 1; i < segments.length; i++) {
       dirs.add(segments.sublist(0, i).join('/'));
