@@ -125,10 +125,15 @@ accept-then-amend).
 
 ### Step 7 — Polish
 
-- Keyboard shortcuts (`Ctrl/Cmd+S`; optional Edit/Preview toggle shortcut).
-- i18n sweep (`dart run tool/check_l10n.dart` + custom_lint clean).
-- Coverage gate green; write up the e-ink active-editor open item where the
-  design doc's e-ink note points.
+- **`Ctrl/Cmd+S` = save now** on the editor pane (both modifiers bound for
+  cross-platform), the keyboard equivalent of the save-status chip. The optional
+  Edit/Preview toggle shortcut is **deferred**: no strong convention, and the
+  obvious keys (`Ctrl/Cmd+E`) collide with text-field editing shortcuts on some
+  platforms — not worth a fragile binding.
+- i18n sweep: `tool/check_l10n.dart` and the `no_raw_widget_strings` custom lint
+  both clean.
+- Coverage gate green; the e-ink **active-editor refresh** open item is written
+  up in the design doc's "E-ink open item" section.
 
 ## Dependencies to add
 

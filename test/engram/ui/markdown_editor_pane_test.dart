@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:brainframe/engram/engram_store.dart';
 import 'package:brainframe/engram/ui/markdown_editor_pane.dart';
 import 'package:brainframe/engram/ui/markdown_reader.dart';
 import 'package:brainframe/engram/ui/markdown_source_editor.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/localized_app.dart';
@@ -234,4 +234,26 @@ void main() {
     expect(find.byType(MarkdownSourceEditor), findsNothing);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
+
+  for (final (name, modifier) in [
+    ('Ctrl+S', LogicalKeyboardKey.control),
+    ('Cmd+S', LogicalKeyboardKey.meta),
+  ]) {
+    testWidgets('$name saves the buffer', (tester) async {
+      final store = _RwStore({'a.md': '# A'});
+      await tester.pumpWidget(_host(store, 'a.md'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '# A edited');
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(modifier);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.sendKeyUpEvent(modifier);
+      await tester.pump();
+      await tester.pump();
+
+      expect(store.files['a.md'], '# A edited');
+    });
+  }
 }
