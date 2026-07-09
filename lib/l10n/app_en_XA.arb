@@ -52,5 +52,9 @@
   "delete": "[Đéłéŧé~~]",
   "deleteConfirmTitle": "[Đéłéŧé?~~~]",
   "deleteFileConfirm": "[Đéłéŧé “{name}”? Ŧħíš çáñ’ŧ ƀé úñđóñé.~~~~~~~~~~~]",
-  "deleteFolderConfirm": "[Đéłéŧé “{name}” áñđ évéŕýŧħíñǵ íñ íŧ? Ŧħíš çáñ’ŧ ƀé úñđóñé.~~~~~~~~~~~~~~~~~~]"
+  "deleteFolderConfirm": "[Đéłéŧé “{name}” áñđ évéŕýŧħíñǵ íñ íŧ? Ŧħíš çáñ’ŧ ƀé úñđóñé.~~~~~~~~~~~~~~~~~~]",
+  "move": "[Ḿóvé~~]",
+  "moveTitle": "[Ḿóvé ŧó…~~~]",
+  "folderPickerRoot": "[Ŧóþ łévéł~~~]",
+  "folderPickerEmpty": "[Ñó óŧħéŕ ƒółđéŕ ŧó ɱóvé ŧó.~~~~~~~~~]"
 }

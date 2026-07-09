@@ -297,5 +297,25 @@
     "placeholders": {
       "name": { "type": "String", "example": "notes" }
     }
+  },
+
+  "move": "Move",
+  "@move": {
+    "description": "Row-action menu item, and confirm button in the folder picker, for moving a file or folder to another folder."
+  },
+
+  "moveTitle": "Move to…",
+  "@moveTitle": {
+    "description": "Title of the folder-picker dialog shown when moving a file or folder."
+  },
+
+  "folderPickerRoot": "Top level",
+  "@folderPickerRoot": {
+    "description": "Folder-picker entry for the engram's root (top level, no parent folder)."
+  },
+
+  "folderPickerEmpty": "No other folder to move to.",
+  "@folderPickerEmpty": {
+    "description": "Shown in the folder picker when there is nowhere else to move the item."
   }
 }

@@ -18,6 +18,7 @@ import 'engram_switcher.dart';
 import 'file_tree.dart';
 import 'file_tree_node.dart';
 import 'file_viewer.dart';
+import 'folder_picker.dart';
 import 'help_overlay.dart';
 
 /// Width below which the sidebar becomes an off-canvas drawer (phone). Above it
@@ -418,6 +419,8 @@ class _EngramBrowserState extends State<EngramBrowser> {
     switch (action) {
       case FileTreeRowAction.rename:
         await _renameEntry(node, fullPath);
+      case FileTreeRowAction.move:
+        await _moveEntry(node, fullPath);
       case FileTreeRowAction.delete:
         await _deleteEntry(node, fullPath);
       case FileTreeRowAction.newNoteHere:
@@ -467,6 +470,60 @@ class _EngramBrowserState extends State<EngramBrowser> {
     }
     if (!mounted) return;
     _refresh();
+  }
+
+  /// Moves the file or folder at [fullPath] into a folder chosen from the
+  /// reusable folder picker. The picker's destinations exclude the item's
+  /// current parent (a no-op) and, for a folder, itself and its descendants
+  /// (which would be invalid). The name is kept, collision-avoided at the
+  /// destination, and the open file stays selected under its new path.
+  Future<void> _moveEntry(FileTreeNode node, String fullPath) async {
+    final store = _contentStore;
+    if (store == null) return;
+    final currentParent = _parentOf(fullPath);
+    final candidates = <String>[
+      for (final dir in await store.listDirectories())
+        if (!isHiddenEngramPath(dir) &&
+            dir != currentParent &&
+            !(node.isFolder &&
+                (dir == fullPath || dir.startsWith('$fullPath/'))))
+          dir,
+    ]..sort();
+    if (!mounted) return;
+
+    final dest = await showFolderPicker(
+      context,
+      folders: candidates,
+      includeRoot: currentParent.isNotEmpty, // root is a no-op when already there
+    );
+    if (dest == null || !mounted || dest == currentParent) return;
+
+    // Keep the name, avoiding a collision with a same-kind sibling at [dest].
+    final extension = node.isFolder ? '' : _extensionOf(node.name);
+    final stem = _stemOf(node.name, extension);
+    final siblings = node.isFolder
+        ? <String>{
+            for (final dir in await store.listDirectories())
+              if (_parentOf(dir) == dest) _lastSegment(dir),
+          }
+        : <String>{
+            for (final path in await store.list())
+              if (_parentOf(path) == dest &&
+                  _extensionOf(_lastSegment(path)) == extension)
+                _stemOf(_lastSegment(path), extension),
+          };
+    final newName = '${EngramFileOps.freeName(stem, siblings)}$extension';
+    final newPath = dest.isEmpty ? newName : '$dest/$newName';
+
+    if (node.isFolder) {
+      await EngramFileOps(store).moveFolder(fullPath, newPath);
+      if (!mounted) return;
+      _refresh(selectPath: _selectionAfterFolderMove(fullPath, newPath));
+    } else {
+      await store.move(fullPath, newPath);
+      if (!mounted) return;
+      _refresh(selectPath: _selectedPath == fullPath ? newPath : null);
+    }
   }
 
   /// Renames the file or folder at [fullPath]: prompts for a new name (a file
