@@ -218,15 +218,39 @@ itself is a `TextField`, already a semantic text field, but gets an explicit
 label and respects `textScaler` and `boldText`. The caret blink is disabled
 under `MediaQuery.disableAnimations` (Reduce Motion, and the e-ink target).
 
-## E-ink note (flagged, not solved here)
+## E-ink open item: active-editor refresh (flagged, not solved here)
 
-Live text editing — a blinking caret, per-keystroke feedback — is in tension
-with the e-ink model of pushing frames only on deliberate user action. Like the
-screen-reader note in the accessibility rules, **the editor primarily targets
-the companion desktop/mobile interfaces**. The refresh strategy for an *active*
-editor on the e-ink panel (partial refresh cadence while typing) is a real
-problem that belongs with the flutter-pi embedder work, not this chunk. It is
-recorded here as an open item so it is not silently assumed solved.
+Live text editing is in tension with the e-ink model of pushing frames only on
+deliberate user action. Everything *else* in this feature already respects that
+model — the file tree, dialogs, and the save-status chip only change on discrete
+actions, and animations (including the caret's opacity fade) are off under
+`MediaQuery.disableAnimations`, which the e-ink target sets. The unsolved case
+is the **active editor**: while the user types, the text buffer changes
+per keystroke, which wants a frame per keystroke — exactly what the e-ink panel
+cannot push cheaply.
+
+What is *not* the problem: the caret blink (a discrete timer Flutter owns, no
+public disable — noted at `MarkdownSourceEditor`), read/preview rendering
+(discrete), and saving (already debounced/discrete). Only the live keystroke
+feedback is at odds with the panel.
+
+Directions a solution might take, all owned by the **flutter-pi embedder work**,
+not this chunk:
+
+- Drive the panel on a **partial-refresh cadence** while an editor is focused
+  (e.g. coalesce keystrokes into a partial refresh every N ms / on word
+  boundaries), accepting visible latency between keypress and glyph.
+- Or treat the e-ink build as **preview-first**: edit on the companion
+  desktop/mobile interface (where the editor already lives well), and keep the
+  panel in the rendered reader, entering the raw editor only briefly.
+- Either way, the embedder needs a signal for "an editor is active" so it can
+  switch refresh strategy; the widget layer would expose that, but the policy is
+  the embedder's.
+
+Recorded as an open item so it is **not silently assumed solved**. Until the
+embedder addresses it, the editor primarily targets the companion desktop/mobile
+interfaces (the same framing as the screen-reader note in the accessibility
+rules).
 
 ## i18n
 

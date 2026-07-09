@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../l10n/gen/app_localizations.dart';
 import '../engram_store.dart';
@@ -126,20 +129,31 @@ class _MarkdownEditorPaneState extends State<MarkdownEditorPane> {
         ),
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _Header(
-          path: widget.path,
-          mode: _mode,
-          status: _controller.status,
-          onModeChanged: _setMode,
-          onSaveNow: _controller.flush,
-        ),
-        Expanded(child: _content()),
-      ],
+    // Ctrl/Cmd+S flushes now — the keyboard equivalent of the save-status chip.
+    // Both modifiers are bound so it works on every desktop platform; a focused
+    // editor field lets the key event reach here.
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true): _saveNow,
+        const SingleActivator(LogicalKeyboardKey.keyS, meta: true): _saveNow,
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Header(
+            path: widget.path,
+            mode: _mode,
+            status: _controller.status,
+            onModeChanged: _setMode,
+            onSaveNow: _saveNow,
+          ),
+          Expanded(child: _content()),
+        ],
+      ),
     );
   }
+
+  void _saveNow() => unawaited(_controller.flush());
 
   Widget _content() {
     switch (_mode) {
