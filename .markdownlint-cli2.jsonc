@@ -25,6 +25,10 @@
     "**/Assets.xcassets/**/README.md",
     // Imported UI design handoffs — third-party reference material kept
     // verbatim, not prose we author, so it isn't held to our style rules.
-    "docs/ui_designs/**"
+    "docs/ui_designs/**",
+    // Manual-testing engram fixture. Its notes deliberately break the house
+    // style (over-long lines, bare URLs, broken links) to exercise the reader,
+    // so they are test data, not authored prose. See test/fixtures/engram/.
+    "test/fixtures/engram/**"
   ]
 }
