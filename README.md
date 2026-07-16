@@ -43,6 +43,7 @@ arguments):
 | --- | --- |
 | `--engram <path>` | Open the engram at `<path>` at startup instead of the last-opened one. If the folder isn't an engram yet, a marker is created in place. The choice is transient — it isn't added to the registry or remembered next launch. |
 | `--ignore-config` | Start without reading or writing saved configuration. Preferences are backed by an ephemeral in-memory store, so the engram registry, last-opened engram, window geometry, and theme are neither loaded nor overwritten. |
+| `--help`, `-h` | Print usage to the terminal and exit without starting the app. |
 
 Pass them to a built binary directly, or through `flutter run`'s
 `--dart-entrypoint-args` (comma-separated):

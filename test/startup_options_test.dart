@@ -7,6 +7,26 @@ void main() {
       final options = StartupOptions.parse(const []);
       expect(options.engramPath, isNull);
       expect(options.ignoreConfig, isFalse);
+      expect(options.showHelp, isFalse);
+    });
+
+    test('--help and -h both request help', () {
+      expect(StartupOptions.parse(['--help']).showHelp, isTrue);
+      expect(StartupOptions.parse(['-h']).showHelp, isTrue);
+    });
+
+    test('help is recognized alongside other options', () {
+      final options =
+          StartupOptions.parse(['--engram=/z', '--ignore-config', '--help']);
+      expect(options.showHelp, isTrue);
+      expect(options.engramPath, '/z');
+      expect(options.ignoreConfig, isTrue);
+    });
+
+    test('the usage text names every option', () {
+      expect(StartupOptions.usage, contains('--engram'));
+      expect(StartupOptions.usage, contains('--ignore-config'));
+      expect(StartupOptions.usage, contains('--help'));
     });
 
     test('--engram with a space-separated path', () {

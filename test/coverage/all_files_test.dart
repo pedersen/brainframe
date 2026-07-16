@@ -6,6 +6,9 @@
 // ignore_for_file: unused_import
 
 import 'package:brainframe/app.dart';
+import 'package:brainframe/cli_output.dart';
+import 'package:brainframe/cli_output_io.dart';
+import 'package:brainframe/cli_output_stub.dart';
 import 'package:brainframe/engram/asset_engram_store.dart';
 import 'package:brainframe/engram/built_in_engrams.dart';
 import 'package:brainframe/engram/desktop_folder_adoption.dart';

@@ -4,6 +4,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'app.dart';
+import 'cli_output.dart';
 import 'engram/engram.dart';
 import 'engram/engram_repository.dart';
 import 'engram/fs/fs_store.dart';
@@ -13,6 +14,13 @@ import 'window/window_state.dart';
 Future<void> main(List<String> args) async {
   // Desktop forwards argv here; mobile and web start with an empty list.
   final options = StartupOptions.parse(args);
+
+  // --help: print usage to stdout and exit before any Flutter setup, so no
+  // window is created. A no-op on web (no stdout, no argv).
+  if (options.showHelp) {
+    printHelpAndExit(StartupOptions.usage);
+    return;
+  }
 
   WidgetsFlutterBinding.ensureInitialized();
 
