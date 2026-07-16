@@ -110,7 +110,12 @@ String? _resolveIntraEngramLink(String currentPath, String href) {
   final segments = href.startsWith('/')
       ? <String>[]
       : (currentPath.split('/')..removeLast());
-  for (final segment in href.split('/')) {
+  // Split on the raw '/' first so an encoded '%2F' is never treated as a path
+  // separator, then percent-decode each segment. Markdown link destinations
+  // encode spaces and other reserved characters (`Habit%20Building%20Tools.md`),
+  // while the engram's own paths use the decoded form — decode so they match.
+  for (final rawSegment in href.split('/')) {
+    final segment = _decodeSegment(rawSegment);
     if (segment.isEmpty || segment == '.') continue;
     if (segment == '..') {
       if (segments.isEmpty) return null; // escapes the engram root
@@ -120,4 +125,14 @@ String? _resolveIntraEngramLink(String currentPath, String href) {
     }
   }
   return segments.isEmpty ? null : segments.join('/');
+}
+
+/// Percent-decodes a single path segment, falling back to the raw text if the
+/// segment is not valid percent-encoding (e.g. a stray `%`).
+String _decodeSegment(String segment) {
+  try {
+    return Uri.decodeComponent(segment);
+  } on ArgumentError {
+    return segment;
+  }
 }

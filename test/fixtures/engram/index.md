@@ -40,3 +40,5 @@ notebook start here.
 - [Markdown kitchen sink](reference/markdown-kitchen-sink.md)
 - [Broken links (on purpose)](reference/broken-links.md)
 - [Trail map overview](maps/overview.md)
+- [Reading list](reading%20list/Reading%20List%20MoC.md) — a folder and files
+  with spaces, reached by a percent-encoded link.
