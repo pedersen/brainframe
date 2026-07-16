@@ -69,11 +69,28 @@ void main() {
       expect(options.engramPath, isNull);
     });
 
-    test('unknown arguments are ignored rather than rejected', () {
-      final options = StartupOptions.parse(
-          ['--verbose', '--engram=/z', 'stray', '--flutter-flag']);
+    test('bare positional arguments are ignored, valid options still apply', () {
+      final options =
+          StartupOptions.parse(['--engram=/z', 'stray', 'positional']);
       expect(options.engramPath, '/z');
       expect(options.ignoreConfig, isFalse);
+    });
+
+    test('an unknown option never throws — it falls back to defaults', () {
+      // Launch-anyway behavior: an unrecognized flag can't stop the app, so the
+      // whole parse degrades to safe defaults rather than aborting.
+      final options = StartupOptions.parse(['--verbose']);
+      expect(options.engramPath, isNull);
+      expect(options.ignoreConfig, isFalse);
+      expect(options.showHelp, isFalse);
+    });
+
+    test('an unknown option alongside valid ones still falls back to defaults',
+        () {
+      // Consequence of using a strict parser with a catch-all: a stray option
+      // resets the batch. Correct invocations are unaffected.
+      final options = StartupOptions.parse(['--engram=/z', '--nope']);
+      expect(options.engramPath, isNull);
     });
 
     test('a later --engram wins over an earlier one', () {
