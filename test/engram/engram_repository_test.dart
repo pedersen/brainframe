@@ -257,4 +257,47 @@ void main() {
       expect((await repoWith().openInitialEngram()).id, builtinTutorialId);
     });
   });
+
+  group('openEngramAtPath (the --engram override)', () {
+    test('opens an existing engram folder, keeping its identity', () async {
+      final path = '${tempRoot.path}/existing';
+      final created = await createFileSystemEngram(
+        location: EngramLocation(path),
+        displayName: 'Existing',
+      );
+
+      final opened = await repoWith().openEngramAtPath(path);
+      expect(opened.id, created.id);
+      expect(opened.displayName, 'Existing');
+      expect(opened.readOnly, isFalse);
+    });
+
+    test('creates a marker for a plain folder, named from the folder',
+        () async {
+      final path = '${tempRoot.path}/Field Journal';
+      await Directory(path).create(recursive: true);
+
+      final opened = await repoWith().openEngramAtPath(path);
+      expect(opened.displayName, 'Field Journal'); // derived from the folder
+      expect(File('$path/.brainframe/engram.json').existsSync(), isTrue);
+    });
+
+    test('does not register the engram or record it as last-opened', () async {
+      final path = '${tempRoot.path}/transient';
+      await createFileSystemEngram(
+        location: EngramLocation(path),
+        displayName: 'Transient',
+      );
+
+      final repo = repoWith();
+      await repo.openEngramAtPath(path);
+
+      // The override is transient: registry and last-opened are untouched, so a
+      // normal launch afterwards still resolves to the tutorial.
+      final discovery = await repo.discover();
+      expect(discovery.available.any((e) => e.displayName == 'Transient'),
+          isFalse);
+      expect((await repo.openInitialEngram()).id, builtinTutorialId);
+    });
+  });
 }

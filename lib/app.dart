@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 
+import 'engram/engram.dart';
 import 'engram/engram_repository.dart';
 import 'engram/engram_startup_gate.dart';
 import 'engram/ui/engram_browser.dart';
@@ -32,11 +33,20 @@ List<Locale> appSupportedLocales({bool releaseMode = kReleaseMode}) {
 /// [EngramStartupGate] + `EngramScope`, so switching engrams rebuilds only the
 /// content, never this root.
 class BrainFrameApp extends StatelessWidget {
-  const BrainFrameApp({super.key, required this.repository});
+  const BrainFrameApp({
+    super.key,
+    required this.repository,
+    this.resolveInitialEngram,
+  });
 
   /// Discovers and remembers engrams; supplies the startup engram and persists
   /// switches. Injected so tests (and later, alternate hosts) can substitute it.
   final EngramRepository repository;
+
+  /// Resolves the engram to open first. Defaults to the repository's usual
+  /// last-opened-or-tutorial logic; `main` supplies an override for the
+  /// `--engram <path>` startup option.
+  final Future<Engram> Function()? resolveInitialEngram;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +69,8 @@ class BrainFrameApp extends StatelessWidget {
           highContrastDarkTheme: AppTheme.darkHighContrast,
           themeMode: AppSettings.of(context).themeMode,
           home: EngramStartupGate(
-            resolveInitialEngram: repository.openInitialEngram,
+            resolveInitialEngram:
+                resolveInitialEngram ?? repository.openInitialEngram,
             onSwitched: (engram) => repository.setLastOpened(engram.id),
             child: EngramBrowser(repository: repository),
           ),

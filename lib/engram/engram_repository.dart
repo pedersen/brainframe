@@ -186,6 +186,17 @@ class EngramRepository {
   Future<Engram> openInitialEngram() async =>
       await lastOpened ?? _builtInTutorial();
 
+  /// Opens the engram at [path] directly for this session — the
+  /// `--engram <path>` startup override — without consulting or modifying the
+  /// registry or the last-opened record. If the folder is not yet an engram, a
+  /// marker is created in place (named from the folder), mirroring the "adopt a
+  /// folder" flow. Because nothing is persisted, a later ordinary launch
+  /// resolves the usual way.
+  Future<Engram> openEngramAtPath(String path) => openOrCreateFileSystemEngram(
+        EngramLocation(path),
+        displayName: _folderDisplayName(path),
+      );
+
   Engram _builtInTutorial() => builtInEngrams(bundle: _assetBundle)
       .firstWhere((engram) => engram.id == builtinTutorialId);
 

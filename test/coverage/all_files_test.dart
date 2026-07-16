@@ -6,6 +6,9 @@
 // ignore_for_file: unused_import
 
 import 'package:brainframe/app.dart';
+import 'package:brainframe/cli_output.dart';
+import 'package:brainframe/cli_output_io.dart';
+import 'package:brainframe/cli_output_stub.dart';
 import 'package:brainframe/engram/asset_engram_store.dart';
 import 'package:brainframe/engram/built_in_engrams.dart';
 import 'package:brainframe/engram/desktop_folder_adoption.dart';
@@ -35,6 +38,7 @@ import 'package:brainframe/engram/ui/markdown_editor_pane.dart';
 import 'package:brainframe/engram/ui/markdown_reader.dart';
 import 'package:brainframe/engram/ui/markdown_source_editor.dart';
 import 'package:brainframe/main.dart';
+import 'package:brainframe/startup_options.dart';
 import 'package:brainframe/theme/app_settings.dart';
 import 'package:brainframe/theme/app_theme.dart';
 import 'package:brainframe/theme/design_language.dart';
