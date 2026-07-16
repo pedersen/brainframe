@@ -49,6 +49,25 @@ void main() {
       expect(resolveIntraEngramLink('notes/a.md', '/welcome.md'), 'welcome.md');
     });
 
+    test('percent-decodes segments so encoded spaces match real paths', () {
+      // Markdown encodes spaces in link destinations; the engram's paths use
+      // real spaces. Decoding is what makes them match (regression: silently
+      // failing links to files whose names contain spaces).
+      expect(
+        resolveIntraEngramLink('book-notes/Atomic Habits/Atomic Habits MoC.md',
+            'Habit%20Building%20Tools.md'),
+        'book-notes/Atomic Habits/Habit Building Tools.md',
+      );
+      expect(
+        resolveIntraEngramLink('a/b.md', 'sub%20dir/c%20d.md'),
+        'a/sub dir/c d.md',
+      );
+    });
+
+    test('falls back to the raw segment when encoding is malformed', () {
+      expect(resolveIntraEngramLink('a.md', 'b%zz.md'), 'b%zz.md');
+    });
+
     test('returns null for external links and root escapes', () {
       expect(resolveIntraEngramLink('a.md', 'https://example.com'), isNull);
       expect(resolveIntraEngramLink('a.md', 'mailto:x@y.z'), isNull);
@@ -70,6 +89,29 @@ void main() {
       find.textContaining('Hello world', findRichText: true),
       findsWidgets,
     );
+  });
+
+  testWidgets('tapping a percent-encoded link navigates to the decoded path',
+      (tester) async {
+    const current = 'reading list/Reading List MoC.md';
+    const target = 'reading list/Wildflowers of the Midwest.md';
+    String? navigated;
+    await tester.pumpWidget(_host(
+      MarkdownReader(
+        store: _MapStore({
+          current: '[Wildflowers](Wildflowers%20of%20the%20Midwest.md)',
+        }),
+        path: current,
+        availablePaths: const {current, target},
+        onNavigateToFile: (path) => navigated = path,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tapOnText(find.textRange.ofSubstring('Wildflowers'));
+    await tester.pumpAndSettle();
+
+    expect(navigated, target);
   });
 
   testWidgets('content is top-aligned within a tall pane, not centered',

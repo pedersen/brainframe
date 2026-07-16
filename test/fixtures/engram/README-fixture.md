@@ -35,6 +35,10 @@ markdown edge cases the tutorial engram is too small and too pristine to show.
   deep nesting, over-long lines.
 - `assets/loose-photo.png` — an image with no referring note, to test opening an
   image directly from the file tree.
+- `reading list/` — a folder *and* files whose names contain spaces, linked with
+  percent-encoded destinations (`Reading%20List%20MoC.md`). Exercises intra-engram
+  navigation to spaced filenames, which silently did nothing before the link
+  resolver decoded `%20`.
 
 ## Not here yet
 
