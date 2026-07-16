@@ -35,6 +35,7 @@ import 'package:brainframe/engram/ui/markdown_editor_pane.dart';
 import 'package:brainframe/engram/ui/markdown_reader.dart';
 import 'package:brainframe/engram/ui/markdown_source_editor.dart';
 import 'package:brainframe/main.dart';
+import 'package:brainframe/startup_options.dart';
 import 'package:brainframe/theme/app_settings.dart';
 import 'package:brainframe/theme/app_theme.dart';
 import 'package:brainframe/theme/design_language.dart';

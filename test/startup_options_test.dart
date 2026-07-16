@@ -1,0 +1,65 @@
+import 'package:brainframe/startup_options.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  group('StartupOptions.parse', () {
+    test('an empty argument list yields defaults', () {
+      final options = StartupOptions.parse(const []);
+      expect(options.engramPath, isNull);
+      expect(options.ignoreConfig, isFalse);
+    });
+
+    test('--engram with a space-separated path', () {
+      final options = StartupOptions.parse(['--engram', '/notes/zettel']);
+      expect(options.engramPath, '/notes/zettel');
+      expect(options.ignoreConfig, isFalse);
+    });
+
+    test('--engram=<path> with an equals sign', () {
+      final options = StartupOptions.parse(['--engram=/notes/zettel']);
+      expect(options.engramPath, '/notes/zettel');
+    });
+
+    test('a path may itself contain spaces (space-separated form)', () {
+      final options =
+          StartupOptions.parse(['--engram', '/notes/book notes/Atomic']);
+      expect(options.engramPath, '/notes/book notes/Atomic');
+    });
+
+    test('--ignore-config sets the flag', () {
+      final options = StartupOptions.parse(['--ignore-config']);
+      expect(options.ignoreConfig, isTrue);
+      expect(options.engramPath, isNull);
+    });
+
+    test('both options together, in any order', () {
+      final options =
+          StartupOptions.parse(['--ignore-config', '--engram=/z']);
+      expect(options.engramPath, '/z');
+      expect(options.ignoreConfig, isTrue);
+    });
+
+    test('--engram with no following value is ignored (stays null)', () {
+      final options = StartupOptions.parse(['--engram']);
+      expect(options.engramPath, isNull);
+    });
+
+    test('an empty --engram= value is treated as absent', () {
+      final options = StartupOptions.parse(['--engram=']);
+      expect(options.engramPath, isNull);
+    });
+
+    test('unknown arguments are ignored rather than rejected', () {
+      final options = StartupOptions.parse(
+          ['--verbose', '--engram=/z', 'stray', '--flutter-flag']);
+      expect(options.engramPath, '/z');
+      expect(options.ignoreConfig, isFalse);
+    });
+
+    test('a later --engram wins over an earlier one', () {
+      final options =
+          StartupOptions.parse(['--engram=/first', '--engram', '/second']);
+      expect(options.engramPath, '/second');
+    });
+  });
+}

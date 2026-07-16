@@ -33,6 +33,32 @@ dart run flutter_launcher_icons   # regenerate platform launcher icons
 flutter run -d linux              # or: chrome, windows, macos, android, ios
 ```
 
+## Command-line options (desktop)
+
+Two startup options are handy for development and testing on desktop targets
+(they are ignored on mobile and web, which don't receive command-line
+arguments):
+
+| Option | Effect |
+| --- | --- |
+| `--engram <path>` | Open the engram at `<path>` at startup instead of the last-opened one. If the folder isn't an engram yet, a marker is created in place. The choice is transient — it isn't added to the registry or remembered next launch. |
+| `--ignore-config` | Start without reading or writing saved configuration. Preferences are backed by an ephemeral in-memory store, so the engram registry, last-opened engram, window geometry, and theme are neither loaded nor overwritten. |
+
+Pass them to a built binary directly, or through `flutter run`'s
+`--dart-entrypoint-args` (comma-separated):
+
+```bash
+# Against a built binary:
+build/linux/x64/debug/bundle/brainframe --engram /path/to/engram --ignore-config
+
+# Through flutter run:
+flutter run -d linux --dart-entrypoint-args=--engram=/path/to/engram,--ignore-config
+```
+
+Combining them — `--engram <fixture> --ignore-config` — opens a known engram in
+a clean-slate session that leaves your real configuration untouched, which is
+the intended testing setup.
+
 ## Development
 
 Contributions flow through the worktree → branch → pull request workflow

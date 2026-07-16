@@ -1,4 +1,5 @@
 import 'package:brainframe/app.dart';
+import 'package:brainframe/engram/built_in_engrams.dart';
 import 'package:brainframe/engram/engram_repository.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,6 +39,26 @@ void main() {
       find.textContaining('Welcome to BrainFrame', findRichText: true),
       findsWidgets,
     );
+  });
+
+  testWidgets('resolveInitialEngram override wins over the repository default',
+      (tester) async {
+    // Mirrors how `main` supplies the --engram override: a resolver passed to
+    // BrainFrameApp is used instead of the repository's last-opened/tutorial
+    // logic. Here it opens the Help built-in, so the browser shows Help, not
+    // the Tutorial the default would pick.
+    await tester.pumpWidget(BrainFrameApp(
+      repository: EngramRepository(
+        preferences: SharedPreferencesAsync(),
+        containerPathResolver: () async =>
+            throw UnsupportedError('no filesystem in widget tests'),
+      ),
+      resolveInitialEngram: () async => builtInHelpEngram(),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Help'), findsOneWidget);
+    expect(find.text('Tutorial'), findsNothing);
   });
 
   testWidgets('window title resolves through AppLocalizations', (tester) async {
