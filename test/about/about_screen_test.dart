@@ -63,13 +63,13 @@ void main() {
 
   Widget screen({
     UriLauncher? launcher,
-    int? year,
+    int? currentYear,
   }) =>
       AboutScreen(
         version: '2.4.1',
         buildNumber: '1847',
         launcher: launcher ?? (_) async => true,
-        year: year,
+        currentYear: currentYear,
       );
 
   testWidgets('shows app identity and tagline', (tester) async {
@@ -141,18 +141,33 @@ void main() {
     );
   });
 
-  testWidgets('footer shows the given year', (tester) async {
-    await tester.pumpWidget(host(screen(year: 2031)));
+  testWidgets('footer shows only the founding year during that year',
+      (tester) async {
+    await tester.pumpWidget(host(screen(currentYear: 2026)));
 
-    expect(find.textContaining('© 2031 BrainFrame'), findsOneWidget);
+    expect(find.textContaining('© 2026 BrainFrame'), findsOneWidget);
   });
 
-  testWidgets('footer defaults to the current year when none is given',
+  testWidgets('footer grows into a range in later years', (tester) async {
+    await tester.pumpWidget(host(screen(currentYear: 2031)));
+
+    expect(find.textContaining('© 2026–2031 BrainFrame'), findsOneWidget);
+  });
+
+  testWidgets('footer never shows a backwards range on an early clock',
+      (tester) async {
+    await tester.pumpWidget(host(screen(currentYear: 2020)));
+
+    expect(find.textContaining('© 2026 BrainFrame'), findsOneWidget);
+  });
+
+  testWidgets('footer defaults to the real current year when none is given',
       (tester) async {
     await tester.pumpWidget(host(screen()));
 
-    final thisYear = DateTime.now().year;
-    expect(find.textContaining('© $thisYear BrainFrame'), findsOneWidget);
+    final now = DateTime.now().year;
+    final expected = now <= 2026 ? '© 2026 BrainFrame' : '© 2026–$now BrainFrame';
+    expect(find.textContaining(expected), findsOneWidget);
   });
 
   testWidgets('renders inside the Cupertino scaffold too', (tester) async {

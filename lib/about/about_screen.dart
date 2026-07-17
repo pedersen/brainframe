@@ -49,7 +49,7 @@ class AboutScreen extends StatelessWidget {
     required this.version,
     required this.buildNumber,
     this.launcher = _launchExternal,
-    this.year,
+    this.currentYear,
   });
 
   /// Semantic app version, e.g. "2.4.1".
@@ -61,9 +61,14 @@ class AboutScreen extends StatelessWidget {
   /// Opens the website/contact links. Defaults to the platform handler.
   final UriLauncher launcher;
 
-  /// The year in the footer. Defaults to the current year; injectable so tests
-  /// stay deterministic.
-  final int? year;
+  /// The current year, used to build the copyright span. Defaults to the real
+  /// current year; injectable so tests stay deterministic.
+  final int? currentYear;
+
+  /// The year BrainFrame was first published. The copyright line starts here
+  /// and grows into a range (`2026–2027`, …) as the years pass — it never
+  /// drops the original year, and never implies a later first-publication year.
+  static const int _foundingYear = 2026;
 
   /// The logo tile's fixed background in both themes (the logo PNG carries a
   /// baked-in near-black background).
@@ -199,10 +204,18 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
+  /// The copyright span: just the founding year until the calendar moves past
+  /// it, then a `2026–<current>` range. Guards against a current year earlier
+  /// than founding (e.g. a misconfigured clock) by never showing a backwards
+  /// range.
+  String _copyrightYears(int current) => current <= _foundingYear
+      ? '$_foundingYear'
+      : '$_foundingYear–$current';
+
   Widget _footer(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
     return Text(
-      l10n.aboutFooter('${year ?? DateTime.now().year}'),
+      l10n.aboutFooter(_copyrightYears(currentYear ?? DateTime.now().year)),
       textAlign: TextAlign.center,
       style: theme.textTheme.bodySmall?.copyWith(
         color: theme.colorScheme.onSurfaceVariant,

@@ -370,9 +370,9 @@
 
   "aboutFooter": "© {year} BrainFrame · Made for minds that never stop.",
   "@aboutFooter": {
-    "description": "Footer line at the bottom of the About screen, with the current year.",
+    "description": "Footer line at the bottom of the About screen. {year} is the copyright span: the founding year alone (e.g. '2026') or a range once the calendar advances (e.g. '2026–2028').",
     "placeholders": {
-      "year": { "type": "String", "example": "2026" }
+      "year": { "type": "String", "example": "2026–2028" }
     }
   }
 }
