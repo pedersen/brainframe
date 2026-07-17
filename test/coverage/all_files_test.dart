@@ -5,6 +5,7 @@
 // reports untested files as 0% instead of omitting them.
 // ignore_for_file: unused_import
 
+import 'package:brainframe/about/about_screen.dart';
 import 'package:brainframe/app.dart';
 import 'package:brainframe/cli_output.dart';
 import 'package:brainframe/cli_output_io.dart';

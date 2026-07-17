@@ -317,5 +317,62 @@
   "folderPickerEmpty": "No other folder to move to.",
   "@folderPickerEmpty": {
     "description": "Shown in the folder picker when there is nowhere else to move the item."
+  },
+
+  "aboutTitle": "About",
+  "@aboutTitle": {
+    "description": "Title of the About screen (app-bar heading), which shows the app identity, version, and contact links."
+  },
+
+  "aboutTooltip": "About BrainFrame",
+  "@aboutTooltip": {
+    "description": "Tooltip / accessibility label for the app-bar button that opens the About screen."
+  },
+
+  "aboutTagline": "Your personal knowledge management system — capture, connect, and recall everything you know.",
+  "@aboutTagline": {
+    "description": "One-line description of the app shown under its name on the About screen."
+  },
+
+  "aboutBuild": "build",
+  "@aboutBuild": {
+    "description": "The word 'build' in the version pill 'v2.4.1 · build 1847', preceding the build number. Kept separate so only the linguistic word is translated; the 'v' prefix, separator, and numbers are not."
+  },
+
+  "aboutVersionSemantics": "Version {version}, build {build}",
+  "@aboutVersionSemantics": {
+    "description": "Screen-reader label for the version pill, which visually reads 'v{version} · build {build}'.",
+    "placeholders": {
+      "version": { "type": "String", "example": "2.4.1" },
+      "build": { "type": "String", "example": "1847" }
+    }
+  },
+
+  "aboutWebsiteLabel": "Website",
+  "@aboutWebsiteLabel": {
+    "description": "Uppercase label above the website link on the About screen's links card."
+  },
+
+  "aboutWebsiteValue": "brainframe.tech",
+  "@aboutWebsiteValue": {
+    "description": "Display text of the website link (the project's domain). A brand/address constant — translators normally leave it unchanged."
+  },
+
+  "aboutContactLabel": "Contact",
+  "@aboutContactLabel": {
+    "description": "Uppercase label above the contact (email) link on the About screen's links card."
+  },
+
+  "aboutContactValue": "getbrainframe@gmail.com",
+  "@aboutContactValue": {
+    "description": "Display text of the contact email link. An address constant — translators normally leave it unchanged."
+  },
+
+  "aboutFooter": "© {year} BrainFrame · Made for minds that never stop.",
+  "@aboutFooter": {
+    "description": "Footer line at the bottom of the About screen, with the current year.",
+    "placeholders": {
+      "year": { "type": "String", "example": "2026" }
+    }
   }
 }

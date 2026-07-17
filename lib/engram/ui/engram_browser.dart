@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../about/about_screen.dart';
 import '../../l10n/gen/app_localizations.dart';
 import '../../widgets/app_scaffold.dart';
 import '../asset_engram_store.dart';
@@ -218,6 +219,11 @@ class _EngramBrowserState extends State<EngramBrowser> {
               icon: const Icon(Icons.help_outline),
               tooltip: AppLocalizations.of(context).helpTitle,
               onPressed: () => showHelpOverlay(context, builtInHelpEngram()),
+            ),
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              tooltip: AppLocalizations.of(context).aboutTooltip,
+              onPressed: () => openAboutScreen(context),
             ),
           ],
           body: _body(
