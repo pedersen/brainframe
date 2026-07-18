@@ -38,6 +38,8 @@ notebook start here.
 ## Reference
 
 - [Markdown kitchen sink](reference/markdown-kitchen-sink.md)
+- [Wikilinks & transclusions](reference/wikilinks-and-transclusions.md) — `[[…]]`
+  and `![[…]]` edge cases (not resolved yet).
 - [Broken links (on purpose)](reference/broken-links.md)
 - [Trail map overview](maps/overview.md)
 - [Reading list](reading%20list/Reading%20List%20MoC.md) — a folder and files
