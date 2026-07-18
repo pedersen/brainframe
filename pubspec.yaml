@@ -56,6 +56,13 @@ dependencies:
   path_provider: ^2.1.6
   flutter_markdown_plus: ^1.0.7
   file_selector: ^1.1.0
+  # Reads the app's real semantic version + build number from bundle metadata
+  # at runtime, shown on the About screen (lib/about/about_screen.dart) instead
+  # of hardcoding pubspec's version. Cross-platform incl. Linux/flutter-pi.
+  package_info_plus: ^10.2.1
+  # Opens the About screen's Website (external browser) and Contact (mailto)
+  # links via the platform handler. Cross-platform incl. Linux/flutter-pi.
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

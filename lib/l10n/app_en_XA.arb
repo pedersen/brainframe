@@ -56,5 +56,15 @@
   "move": "[Ḿóvé~~]",
   "moveTitle": "[Ḿóvé ŧó…~~~]",
   "folderPickerRoot": "[Ŧóþ łévéł~~~]",
-  "folderPickerEmpty": "[Ñó óŧħéŕ ƒółđéŕ ŧó ɱóvé ŧó.~~~~~~~~~]"
+  "folderPickerEmpty": "[Ñó óŧħéŕ ƒółđéŕ ŧó ɱóvé ŧó.~~~~~~~~~]",
+  "aboutTitle": "[Áƀóúŧ~~]",
+  "aboutTooltip": "[Áƀóúŧ ƁŕáíñƑŕáɱé~~~~~~]",
+  "aboutTagline": "[Ýóúŕ þéŕšóñáł ķñóŵłéđǵé ɱáñáǵéɱéñŧ šýšŧéɱ — çáþŧúŕé, çóññéçŧ, áñđ ŕéçáłł évéŕýŧħíñǵ ýóú ķñóŵ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]",
+  "aboutBuild": "[ƀúíłđ~~]",
+  "aboutVersionSemantics": "[Véŕšíóñ {version}, ƀúíłđ {build}~~~~~]",
+  "aboutWebsiteLabel": "[Ŵéƀšíŧé~~~]",
+  "aboutWebsiteValue": "[ƀŕáíñƒŕáɱé.ŧéçħ~~~~~~]",
+  "aboutContactLabel": "[Çóñŧáçŧ~~~]",
+  "aboutContactValue": "[ǵéŧƀŕáíñƒŕáɱé@ǵɱáíł.çóɱ~~~~~~~~~]",
+  "aboutFooter": "[© {year} ƁŕáíñƑŕáɱé · Ḿáđé ƒóŕ ɱíñđš ŧħáŧ ñévéŕ šŧóþ.~~~~~~~~~~~~~~~]"
 }
