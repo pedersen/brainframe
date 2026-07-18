@@ -15,3 +15,10 @@ Patient past the point most watchers are.
 
 - [2026-05-09](../../daily/2026-05-09.md)
 - [2026-06-01](../../daily/2026-06-01.md) — same channel; possibly nesting.
+
+## See also
+
+Wikilink form, for exercising backlinks once the resolver understands `[[…]]`:
+
+- [[cedar-marsh]] — where it hunts.
+- [[barred-owl]] — shares the cedars at the turnaround.

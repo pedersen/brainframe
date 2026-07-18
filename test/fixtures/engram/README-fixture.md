@@ -33,6 +33,14 @@ markdown edge cases the tutorial engram is too small and too pristine to show.
   and breadcrumb wrapping.
 - `reference/markdown-kitchen-sink.md` — tables, code, task lists, blockquotes,
   deep nesting, over-long lines.
+- `reference/wikilinks-and-transclusions.md` — Obsidian `[[wikilink]]` and
+  `![[transclusion]]` syntax in every variant (bare name, path, alias, heading,
+  block `^id`, image embed, and intentionally-unresolved ones). The app does
+  **not** resolve these yet, so today they render as literal text — the file is
+  a current-behavior surface and future-feature coverage. A few real notes carry
+  the syntax in context too: `daily/2026-06-01.md` holds the `^heron-channel`
+  block anchor plus an inline embed, and `species/birds/great-blue-heron.md` has
+  a wikilink-form "See also".
 - `assets/loose-photo.png` — an image with no referring note, to test opening an
   image directly from the file tree.
 - `reading list/` — a folder *and* files whose names contain spaces, linked with
