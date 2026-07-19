@@ -43,12 +43,30 @@ markdown edge cases the tutorial engram is too small and too pristine to show.
   a wikilink-form "See also".
 - `assets/loose-photo.png` — an image with no referring note, to test opening an
   image directly from the file tree.
+- `assets/trail-map-large.png` — a deliberately large **2560×1440** image, so the
+  image viewer's actual-size mode has something to scroll: its corners are
+  labelled NW/NE/SW/SE so you can tell when you've panned to each edge (plan case
+  F7). The other PNGs are 320×240 and fit without scrolling.
+- `reference/plain-text-note.txt` — a `.txt` file (there was none before), to test
+  that plain text renders through the Markdown reader, including single-newline
+  soft-break reflow (plan case F6).
+- `reference/external-links.md` — proper inline external links
+  (`[text](https://…)`, `mailto:`) plus a bare URL and an autolink, so tapping an
+  external link (which today does nothing — no external opener) can be verified,
+  alongside a contrasting relative link that *does* navigate (plan case F6).
 - `reading list/` — a folder *and* files whose names contain spaces, linked with
   percent-encoded destinations (`Reading%20List%20MoC.md`). Exercises intra-engram
   navigation to spaced filenames, which silently did nothing before the link
   resolver decoded `%20`.
+- `field-data-export.zip` — a `.zip` (an opaque container), here as the
+  **permanently** unsupported file type: an archive is not a document, so the app
+  will never render it inline. It is the stable surface for the unsupported-format
+  placeholder (plan case F8), unlike the deferred PDF/EPUB below — those *will*
+  get real viewers, so a case built on them would rot once they land. Treat it as
+  a stand-in for any binary the app will never display.
 
 ## Not here yet
 
 A PDF and an EPUB belong here eventually, but nothing renders them yet, so they
-are deferred.
+are deferred. When their viewers land they stop being unsupported — which is why
+`field-data-export.zip` above, not a PDF, is the durable F8 fixture.

@@ -1,0 +1,21 @@
+Plain text field note (.txt)
+
+This is a plain text file, not Markdown. BrainFrame opens .txt through the same
+reader as Markdown, because Markdown is a superset of plain text. This paragraph
+is hard-wrapped in the source into several short lines, and the renderer treats
+each single newline as a soft break, so these lines reflow into one continuous
+paragraph that fills the pane width.
+
+This second paragraph is separated by a blank line, so it stays a distinct
+paragraph rather than merging with the one above. If you see two paragraphs, the
+first reflowed to the pane width, .txt rendering is working (plan case F6).
+
+Because the reader parses this as Markdown, characters that mean something in
+Markdown are still interpreted here — for example the next three lines become a
+bulleted list:
+
+- first item
+- second item
+- third item
+
+Everything else is just ordinary text with no front matter and no headings.
