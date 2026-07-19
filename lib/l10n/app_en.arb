@@ -496,9 +496,9 @@
     "description": "Explanatory text at the top of the Housekeeping pane, clarifying that forgetting never deletes files."
   },
 
-  "housekeepingEmpty": "Nothing to forget. Only engrams you've added from a folder appear here — built-in and in-app engrams can't be forgotten.",
+  "housekeepingEmpty": "Nothing to forget. Only engrams you've added from a folder can be forgotten.",
   "@housekeepingEmpty": {
-    "description": "Shown in the Housekeeping pane when there are no registry-backed engrams to forget."
+    "description": "Shown in the Housekeeping pane when there are no forgettable engrams (ones added from a folder)."
   },
 
   "housekeepingMissing": "Missing",
