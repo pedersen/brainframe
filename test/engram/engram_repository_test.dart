@@ -136,6 +136,33 @@ void main() {
       expect(discovery.available.any((e) => e.id == adopted.id), isFalse);
     });
 
+    test('registeredEngrams lists registry roots, flagged available', () async {
+      final repo = repoWith();
+      final adopted = await repo.adopt(EngramLocation(externalPath));
+
+      final listed = await repo.registeredEngrams();
+      expect(listed.map((e) => e.id), [adopted.id]);
+      expect(listed.single.path, externalPath);
+      expect(listed.single.available, isTrue);
+    });
+
+    test('registeredEngrams flags a deleted root as unavailable', () async {
+      final repo = repoWith();
+      await repo.adopt(EngramLocation(externalPath));
+      Directory(externalPath).deleteSync(recursive: true);
+
+      final listed = await repo.registeredEngrams();
+      expect(listed.single.available, isFalse); // a dangling entry
+    });
+
+    test('registeredEngrams excludes built-ins and container engrams',
+        () async {
+      final repo = repoWith();
+      await repo.create('In the container'); // Location A, not registry-backed
+
+      expect(await repo.registeredEngrams(), isEmpty);
+    });
+
     test('a deleted root becomes reconnectable-unavailable, not gone', () async {
       final repo = repoWith();
       final adopted = await repo.adopt(EngramLocation(externalPath));

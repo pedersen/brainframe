@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../about/about_screen.dart';
 import '../../l10n/gen/app_localizations.dart';
+import '../../settings/settings_screen.dart';
+import '../../settings/settings_store.dart';
 import '../../widgets/app_scaffold.dart';
 import '../asset_engram_store.dart';
 import '../built_in_engrams.dart';
@@ -21,6 +22,18 @@ import 'file_tree_node.dart';
 import 'file_viewer.dart';
 import 'folder_picker.dart';
 import 'help_overlay.dart';
+
+/// The note an engram was last viewing — the **per-engram** tier of the
+/// settings store, stored inside the engram (`.brainframe/settings.json`) so it
+/// travels with it: opening the engram on any device restores where you left
+/// off. Written on selection, read to seed the default selection on open.
+final Setting<String?> lastOpenedNoteSetting = Setting<String?>(
+  key: 'lastOpenedNote',
+  tier: SettingTier.engram,
+  defaultValue: null,
+  encode: (value) => value,
+  decode: (raw) => raw is String ? raw : null,
+);
 
 /// Width below which the sidebar becomes an off-canvas drawer (phone). Above it
 /// the sidebar and reader sit side-by-side with a draggable divider between.
@@ -160,10 +173,14 @@ class _EngramBrowserState extends State<EngramBrowser> {
     // exactly when the content store and its listing should be (re)issued.
     final engram = EngramScope.of(context).engram;
     final locale = Localizations.localeOf(context);
-    if (engram.id != _loadedEngramId || locale != _loadedLocale) {
+    final engramChanged = engram.id != _loadedEngramId;
+    if (engramChanged || locale != _loadedLocale) {
       _loadedEngramId = engram.id;
       _loadedLocale = locale;
       _contentStore = contentForLocale(engram.store, locale);
+      // Drop the previous engram's selection so this engram's last-opened note
+      // (restored below) becomes the default rather than an unrelated path.
+      if (engramChanged) _selectedPath = null;
       _data = _load(engram, _contentStore!);
     }
   }
@@ -172,11 +189,40 @@ class _EngramBrowserState extends State<EngramBrowser> {
     final paths = await store.list();
     final directories = await store.listDirectories();
     final collapsed = await _prefs.collapsedFolders(engram.id);
+    final lastOpenedNote = await _readLastOpenedNote(engram);
     return _BrowserData(
       paths: paths,
       directories: directories,
       collapsed: collapsed,
+      lastOpenedNote: lastOpenedNote,
     );
+  }
+
+  /// The per-engram settings store for [engram], reading/writing its own
+  /// `.brainframe/settings.json` (via the raw [Engram.store], not the
+  /// locale-wrapped content store). Read-only engrams get a null backend.
+  SettingsStore _engramSettings(Engram engram) => SettingsStore(
+    device: const NullSettingsBackend(),
+    engram: () => engram.readOnly
+        ? const NullSettingsBackend()
+        : EngramSettingsBackend(engram.store),
+  );
+
+  Future<String?> _readLastOpenedNote(Engram engram) =>
+      _engramSettings(engram).read(lastOpenedNoteSetting);
+
+  /// Persists [path] as the active engram's last-opened note (a no-op for a
+  /// read-only engram, which can't store per-engram settings). Best-effort and
+  /// fire-and-forget: remembering where you were must never disrupt navigation,
+  /// so a failed write is swallowed rather than surfaced.
+  Future<void> _persistLastOpenedNote(String path) async {
+    try {
+      await _engramSettings(
+        EngramScope.of(context).engram,
+      ).write(lastOpenedNoteSetting, path);
+    } catch (_) {
+      // Ignore — the note simply won't be remembered this time.
+    }
   }
 
   @override
@@ -204,7 +250,7 @@ class _EngramBrowserState extends State<EngramBrowser> {
             if (!isHiddenEngramPath(path)) path,
         ];
         final collapsed = data?.collapsed ?? const <String>{};
-        final selected = _effectiveSelection(paths);
+        final selected = _effectiveSelection(paths, data?.lastOpenedNote);
         final title = selected != null
             ? _fileName(selected)
             : localizedEngramName(engram, AppLocalizations.of(context));
@@ -219,11 +265,6 @@ class _EngramBrowserState extends State<EngramBrowser> {
               icon: const Icon(Icons.help_outline),
               tooltip: AppLocalizations.of(context).helpTitle,
               onPressed: () => showHelpOverlay(context, builtInHelpEngram()),
-            ),
-            IconButton(
-              icon: const Icon(Icons.info_outline),
-              tooltip: AppLocalizations.of(context).aboutTooltip,
-              onPressed: () => openAboutScreen(context),
             ),
           ],
           body: _body(
@@ -348,10 +389,14 @@ class _EngramBrowserState extends State<EngramBrowser> {
     );
   }
 
-  void _selectFile(String path) => setState(() {
-        _selectedPath = path;
-        _drawerOpen = false;
-      });
+  void _selectFile(String path) {
+    setState(() {
+      _selectedPath = path;
+      _drawerOpen = false;
+    });
+    // Remember where we are in this engram (per-engram tier, travels with it).
+    _persistLastOpenedNote(path);
+  }
 
   /// Prompts for a name and creates a new Markdown note inside [parent] (the
   /// engram root when empty), seeded with an H1 derived from the name, then
@@ -449,9 +494,11 @@ class _EngramBrowserState extends State<EngramBrowser> {
       context: context,
       builder: (dialogContext) => AlertDialog.adaptive(
         title: Text(l10n.deleteConfirmTitle),
-        content: Text(node.isFolder
-            ? l10n.deleteFolderConfirm(node.name)
-            : l10n.deleteFileConfirm(node.name)),
+        content: Text(
+          node.isFolder
+              ? l10n.deleteFolderConfirm(node.name)
+              : l10n.deleteFileConfirm(node.name),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -500,7 +547,8 @@ class _EngramBrowserState extends State<EngramBrowser> {
     final dest = await showFolderPicker(
       context,
       folders: candidates,
-      includeRoot: currentParent.isNotEmpty, // root is a no-op when already there
+      includeRoot:
+          currentParent.isNotEmpty, // root is a no-op when already there
     );
     if (dest == null || !mounted || dest == currentParent) return;
 
@@ -542,8 +590,10 @@ class _EngramBrowserState extends State<EngramBrowser> {
     final l10n = AppLocalizations.of(context);
     final isFolder = node.isFolder;
     final extension = isFolder ? '' : _extensionOf(node.name);
-    final currentStem =
-        node.name.substring(0, node.name.length - extension.length);
+    final currentStem = node.name.substring(
+      0,
+      node.name.length - extension.length,
+    );
 
     final input = await showDialog<String>(
       context: context,
@@ -601,11 +651,15 @@ class _EngramBrowserState extends State<EngramBrowser> {
     return null;
   }
 
-  /// The file to show: the user's selection when it belongs to [paths],
-  /// otherwise a sensible default (a welcome/index file, else the first).
-  String? _effectiveSelection(List<String> paths) {
+  /// The file to show: the user's selection when it belongs to [paths], then the
+  /// engram's [lastOpenedNote] if it still exists, otherwise a sensible default
+  /// (a welcome/index file, else the first).
+  String? _effectiveSelection(List<String> paths, String? lastOpenedNote) {
     if (_selectedPath != null && paths.contains(_selectedPath)) {
       return _selectedPath;
+    }
+    if (lastOpenedNote != null && paths.contains(lastOpenedNote)) {
+      return lastOpenedNote;
     }
     if (paths.isEmpty) return null;
     for (final preferred in const ['welcome.md', 'index.md', 'README.md']) {
@@ -685,12 +739,12 @@ class _NameInputDialog extends StatefulWidget {
 }
 
 class _NameInputDialogState extends State<_NameInputDialog> {
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.initialValue,
-  )..selection = TextSelection(
-      baseOffset: 0,
-      extentOffset: widget.initialValue.length,
-    );
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initialValue)
+        ..selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: widget.initialValue.length,
+        );
 
   @override
   void dispose() {
@@ -730,11 +784,17 @@ class _BrowserData {
     required this.paths,
     required this.directories,
     required this.collapsed,
+    this.lastOpenedNote,
   });
 
   final List<String> paths;
   final List<String> directories;
   final Set<String> collapsed;
+
+  /// The note this engram was last viewing (per-engram tier, stored in the
+  /// engram so it travels with it), or null. Used as the default selection when
+  /// the engram opens, before falling back to a welcome/index file.
+  final String? lastOpenedNote;
 }
 
 /// The sidebar: an optional action header, the file [tree], and a footer that
@@ -767,13 +827,31 @@ class _Sidebar extends StatelessWidget {
         child: Column(
           children: [
             if (onNewNote != null && onNewFolder != null)
-              _SidebarHeader(
-                onNewNote: onNewNote!,
-                onNewFolder: onNewFolder!,
-              ),
+              _SidebarHeader(onNewNote: onNewNote!, onNewFolder: onNewFolder!),
             Expanded(child: tree),
             const Divider(height: 1),
-            EngramSwitcher(repository: repository, current: engram),
+            Row(
+              children: [
+                Expanded(
+                  child: EngramSwitcher(
+                    repository: repository,
+                    current: engram,
+                  ),
+                ),
+                // A short rule marks the settings gear as its own tap target,
+                // distinct from the engram switcher it sits beside.
+                Container(
+                  width: 1,
+                  height: 24,
+                  color: theme.colorScheme.outlineVariant,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  tooltip: AppLocalizations.of(context).settingsTooltip,
+                  onPressed: () => openSettingsScreen(context),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -853,10 +931,14 @@ class _ResizableSplitViewState extends State<_ResizableSplitView> {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Leave room for the reader; never let the sidebar exceed that.
-        final maxWidth =
-            math.max(_minSidebarWidth, constraints.maxWidth - _minReaderWidth);
-        final width =
-            (_width ?? _defaultSidebarWidth).clamp(_minSidebarWidth, maxWidth);
+        final maxWidth = math.max(
+          _minSidebarWidth,
+          constraints.maxWidth - _minReaderWidth,
+        );
+        final width = (_width ?? _defaultSidebarWidth).clamp(
+          _minSidebarWidth,
+          maxWidth,
+        );
         return Row(
           // Stretch so the reader fills the full pane height. Without it, Row's
           // default center alignment gives loose vertical constraints, the
@@ -941,10 +1023,12 @@ class _ResizeHandle extends StatelessWidget {
           ),
         },
         shortcuts: const <ShortcutActivator, Intent>{
-          SingleActivator(LogicalKeyboardKey.arrowLeft):
-              _NudgeIntent(-_resizeStep),
-          SingleActivator(LogicalKeyboardKey.arrowRight):
-              _NudgeIntent(_resizeStep),
+          SingleActivator(LogicalKeyboardKey.arrowLeft): _NudgeIntent(
+            -_resizeStep,
+          ),
+          SingleActivator(LogicalKeyboardKey.arrowRight): _NudgeIntent(
+            _resizeStep,
+          ),
         },
         mouseCursor: SystemMouseCursors.resizeLeftRight,
         child: GestureDetector(

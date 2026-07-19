@@ -1,14 +1,35 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
-const String _prefsKey = 'window_state';
+import '../settings/device_settings.dart';
+import '../settings/settings_store.dart';
+
 const Size _defaultSize = Size(1280, 800);
 const Size _minimumSize = Size(640, 480);
+
+/// The device-tier settings store used for window geometry (there is no
+/// per-engram window state, so the engram tier is null).
+SettingsStore _deviceStore(SharedPreferencesAsync prefs) => SettingsStore(
+  device: DeviceSettingsBackend(prefs),
+  engram: () => const NullSettingsBackend(),
+);
+
+/// True from a "reset to defaults" until the user next resizes or moves the
+/// window. While set, geometry is not persisted — otherwise the save-on-close
+/// (or a stray event) would immediately rewrite the geometry the user just
+/// cleared, silently undoing the reset.
+bool _persistenceSuspended = false;
+
+/// Suspends persisting window geometry until the next deliberate resize/move.
+/// Called by the settings "reset window & layout" action so the reset sticks.
+/// No-op where there is no OS window (see the stub).
+void suspendWindowStatePersistence() {
+  _persistenceSuspended = true;
+}
 
 bool get _isDesktop =>
     defaultTargetPlatform == TargetPlatform.windows ||
@@ -29,8 +50,8 @@ Future<void> initWindowManager() async {
   if (!_isDesktop) return;
 
   await windowManager.ensureInitialized();
-  final prefs = SharedPreferencesAsync();
-  final saved = await _readSaved(prefs);
+  final store = _deviceStore(SharedPreferencesAsync());
+  final saved = await _readSaved(store);
 
   final options = WindowOptions(
     size: saved?.size ?? _defaultSize,
@@ -54,7 +75,7 @@ Future<void> initWindowManager() async {
 
   // Persist on close as well as on change, so the final geometry is never lost.
   await windowManager.setPreventClose(true);
-  windowManager.addListener(_WindowStatePersister(prefs));
+  windowManager.addListener(_WindowStatePersister(store));
 }
 
 /// Persists window geometry whenever it changes.
@@ -64,9 +85,9 @@ Future<void> initWindowManager() async {
 /// for both and debounce, since the present-tense events fire continuously
 /// during a drag.
 class _WindowStatePersister extends WindowListener {
-  _WindowStatePersister(this._prefs);
+  _WindowStatePersister(this._store);
 
-  final SharedPreferencesAsync _prefs;
+  final SettingsStore _store;
   Timer? _debounce;
 
   void _scheduleSave() {
@@ -74,13 +95,21 @@ class _WindowStatePersister extends WindowListener {
     _debounce = Timer(const Duration(milliseconds: 400), _save);
   }
 
+  /// A deliberate user resize/move re-enables persistence after a reset — the
+  /// user is choosing a new geometry, which should be remembered again.
+  void _onGeometryChanged() {
+    _persistenceSuspended = false;
+    _scheduleSave();
+  }
+
   Future<void> _save() async {
+    if (_persistenceSuspended) return;
     final isMaximized = await windowManager.isMaximized();
 
     if (isMaximized) {
       // Keep the previously stored "normal" geometry so that un-maximizing on
       // next launch restores a sensible size rather than the full-screen one.
-      final previous = await _readSaved(_prefs);
+      final previous = await _readSaved(_store);
       await _write(
         position: previous?.position,
         size: previous?.size ?? _defaultSize,
@@ -101,36 +130,33 @@ class _WindowStatePersister extends WindowListener {
     required Size size,
     required bool isMaximized,
   }) async {
-    await _prefs.setString(
-      _prefsKey,
-      jsonEncode({
-        if (position != null) 'x': position.dx,
-        if (position != null) 'y': position.dy,
-        'width': size.width,
-        'height': size.height,
-        'maximized': isMaximized,
-      }),
-    );
+    await _store.write(windowStateSetting, {
+      if (position != null) 'x': position.dx,
+      if (position != null) 'y': position.dy,
+      'width': size.width,
+      'height': size.height,
+      'maximized': isMaximized,
+    });
   }
 
   // Present-tense (Linux) and past-tense (macOS/Windows) geometry events.
   @override
-  void onWindowResize() => _scheduleSave();
+  void onWindowResize() => _onGeometryChanged();
 
   @override
-  void onWindowResized() => _scheduleSave();
+  void onWindowResized() => _onGeometryChanged();
 
   @override
-  void onWindowMove() => _scheduleSave();
+  void onWindowMove() => _onGeometryChanged();
 
   @override
-  void onWindowMoved() => _scheduleSave();
+  void onWindowMoved() => _onGeometryChanged();
 
   @override
-  void onWindowMaximize() => _scheduleSave();
+  void onWindowMaximize() => _onGeometryChanged();
 
   @override
-  void onWindowUnmaximize() => _scheduleSave();
+  void onWindowUnmaximize() => _onGeometryChanged();
 
   @override
   Future<void> onWindowClose() async {
@@ -158,11 +184,10 @@ class _SavedWindowState {
   final bool isMaximized;
 }
 
-Future<_SavedWindowState?> _readSaved(SharedPreferencesAsync prefs) async {
-  final raw = await prefs.getString(_prefsKey);
-  if (raw == null) return null;
+Future<_SavedWindowState?> _readSaved(SettingsStore store) async {
+  final map = await store.read(windowStateSetting);
+  if (map == null) return null;
   try {
-    final map = jsonDecode(raw) as Map<String, dynamic>;
     final x = map['x'] as num?;
     final y = map['y'] as num?;
     return _SavedWindowState(

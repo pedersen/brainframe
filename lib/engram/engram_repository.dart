@@ -4,6 +4,8 @@ import 'dart:developer' as developer;
 import 'package:flutter/services.dart' show AssetBundle;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../settings/device_settings.dart';
+import '../settings/settings_store.dart';
 import 'built_in_engrams.dart';
 import 'engram.dart';
 import 'fs/fs_store.dart';
@@ -32,16 +34,22 @@ class EngramRepository {
     required SharedPreferencesAsync preferences,
     required Future<String> Function() containerPathResolver,
     AssetBundle? bundle,
-  })  : _prefs = preferences,
-        _resolveContainerPath = containerPathResolver,
-        _assetBundle = bundle;
+  }) : _prefs = preferences,
+       _resolveContainerPath = containerPathResolver,
+       _assetBundle = bundle;
 
   final SharedPreferencesAsync _prefs;
   final Future<String> Function() _resolveContainerPath;
   final AssetBundle? _assetBundle;
 
+  /// The per-device tier of the settings store, over the same preferences —
+  /// used for the last-opened engram id (a per-device preference).
+  late final SettingsStore _deviceSettings = SettingsStore(
+    device: DeviceSettingsBackend(_prefs),
+    engram: () => const NullSettingsBackend(),
+  );
+
   static const String _registryKey = 'engram.registry.v1';
-  static const String _lastOpenedKey = 'engram.lastOpened';
 
   /// The engrams available now, plus known registry roots that could not be
   /// resolved this pass (surfaced as reconnectable, not dropped).
@@ -101,7 +109,11 @@ class EngramRepository {
   /// Creates a new read-write engram in the app container.
   Future<Engram> create(String displayName) async {
     if (displayName.trim().isEmpty) {
-      throw ArgumentError.value(displayName, 'displayName', 'must not be blank');
+      throw ArgumentError.value(
+        displayName,
+        'displayName',
+        'must not be blank',
+      );
     }
     final containerPath = await _resolveContainerPath();
     return createContainerEngram(containerPath, displayName);
@@ -164,10 +176,30 @@ class EngramRepository {
     await _writeRegistry(entries);
   }
 
+  /// The engrams held in the registry (the externally-adopted roots), each
+  /// flagged with whether it resolves right now. An unavailable one is a
+  /// dangling entry — its folder is missing or unreadable. Built-in and
+  /// container engrams are not registry-backed, so they never appear here,
+  /// matching exactly what [forget] can act on. Backs the Housekeeping pane.
+  Future<List<RegisteredEngram>> registeredEngrams() async {
+    final entries = await _readRegistry();
+    final discovery = await discover();
+    final availableIds = {for (final engram in discovery.available) engram.id};
+    return [
+      for (final entry in entries)
+        RegisteredEngram(
+          id: entry.id,
+          displayName: entry.displayName,
+          path: entry.path,
+          available: availableIds.contains(entry.id),
+        ),
+    ];
+  }
+
   /// The engram the app last opened, or null if none is set or it no longer
   /// resolves to an available engram.
   Future<Engram?> get lastOpened async {
-    final id = await _prefs.getString(_lastOpenedKey);
+    final id = await _deviceSettings.read(lastOpenedEngramSetting);
     if (id == null) return null;
     final discovery = await discover();
     for (final engram in discovery.available) {
@@ -176,9 +208,9 @@ class EngramRepository {
     return null;
   }
 
-  /// Records [id] as the last-opened engram.
+  /// Records [id] as the last-opened engram (per device).
   Future<void> setLastOpened(String id) =>
-      _prefs.setString(_lastOpenedKey, id);
+      _deviceSettings.write(lastOpenedEngramSetting, id);
 
   /// The engram to open at startup: the last-opened one if it still resolves,
   /// otherwise the built-in tutorial on a true first run (Decision 5). Always
@@ -193,12 +225,13 @@ class EngramRepository {
   /// folder" flow. Because nothing is persisted, a later ordinary launch
   /// resolves the usual way.
   Future<Engram> openEngramAtPath(String path) => openOrCreateFileSystemEngram(
-        EngramLocation(path),
-        displayName: _folderDisplayName(path),
-      );
+    EngramLocation(path),
+    displayName: _folderDisplayName(path),
+  );
 
-  Engram _builtInTutorial() => builtInEngrams(bundle: _assetBundle)
-      .firstWhere((engram) => engram.id == builtinTutorialId);
+  Engram _builtInTutorial() => builtInEngrams(
+    bundle: _assetBundle,
+  ).firstWhere((engram) => engram.id == builtinTutorialId);
 
   Future<List<_RegistryEntry>> _readRegistry() async {
     final raw = await _prefs.getStringList(_registryKey) ?? const <String>[];
@@ -223,10 +256,9 @@ class EngramRepository {
   }
 
   Future<void> _writeRegistry(List<_RegistryEntry> entries) =>
-      _prefs.setStringList(
-        _registryKey,
-        [for (final entry in entries) jsonEncode(entry.toJson())],
-      );
+      _prefs.setStringList(_registryKey, [
+        for (final entry in entries) jsonEncode(entry.toJson()),
+      ]);
 }
 
 /// Derives a display name from an absolute folder [path] — its final segment,
@@ -268,6 +300,27 @@ class UnavailableEngram {
   final EngramLocation location;
 }
 
+/// A registry-backed engram as shown in Housekeeping: its stored identity, where
+/// it lives, and whether it currently resolves. An unavailable one is a dangling
+/// entry whose folder is missing or unreadable. Only these — never built-ins or
+/// container engrams — can be forgotten.
+class RegisteredEngram {
+  const RegisteredEngram({
+    required this.id,
+    required this.displayName,
+    required this.path,
+    required this.available,
+  });
+
+  final String id;
+  final String displayName;
+  final String path;
+
+  /// True when this engram resolved in the latest discovery; false for a
+  /// dangling entry (its folder is gone or unreadable).
+  final bool available;
+}
+
 /// A persisted registry row: an engram's last-known identity plus where it
 /// lives, so a missing engram can still be shown and later reconnected.
 class _RegistryEntry {
@@ -281,12 +334,15 @@ class _RegistryEntry {
   final String displayName;
   final String path;
 
-  Map<String, dynamic> toJson() =>
-      {'id': id, 'displayName': displayName, 'path': path};
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'displayName': displayName,
+    'path': path,
+  };
 
   factory _RegistryEntry.fromJson(Map<String, dynamic> json) => _RegistryEntry(
-        id: json['id'] as String,
-        displayName: json['displayName'] as String,
-        path: json['path'] as String,
-      );
+    id: json['id'] as String,
+    displayName: json['displayName'] as String,
+    path: json['path'] as String,
+  );
 }

@@ -345,6 +345,71 @@ void main() {
     });
   });
 
+  group('last-opened note (per-engram tier)', () {
+    Engram engramFor(_RwStore store) => Engram(
+          id: 'w',
+          displayName: 'W',
+          readOnly: false,
+          store: store,
+        );
+
+    testWidgets('restores the stored note on open, over the index default',
+        (tester) async {
+      setWidth(tester, 1000);
+      final store = _RwStore({'index.md': '# Index', 'other.md': '# Other'})
+        ..settings = {'lastOpenedNote': 'other.md'};
+
+      await tester.pumpWidget(harnessFor(repo(), engramFor(store)));
+      await tester.pumpAndSettle();
+
+      // Restored 'other.md' rather than defaulting to index.md (breadcrumb).
+      expect(find.text('other.md'), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byType(MarkdownEditorPane),
+          matching: find.textContaining('Other', findRichText: true),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('persists the note into the engram when one is opened',
+        (tester) async {
+      setWidth(tester, 1000);
+      final store = _RwStore({'index.md': '# Index', 'other.md': '# Other'});
+
+      await tester.pumpWidget(harnessFor(repo(), engramFor(store)));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('other.md'));
+      await tester.pumpAndSettle();
+
+      expect(store.settings?['lastOpenedNote'], 'other.md');
+    });
+
+    testWidgets('a stored note deleted while closed falls back gracefully',
+        (tester) async {
+      setWidth(tester, 1000);
+      // Last session recorded 'gone.md', but it was deleted while BrainFrame
+      // was closed, so it no longer appears in the engram's listing.
+      final store = _RwStore({'index.md': '# Index'})
+        ..settings = {'lastOpenedNote': 'gone.md'};
+
+      await tester.pumpWidget(harnessFor(repo(), engramFor(store)));
+      await tester.pumpAndSettle();
+
+      // Falls back to the index default — never tries to open the missing note.
+      expect(find.text('gone.md'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(MarkdownEditorPane),
+          matching: find.textContaining('Index', findRichText: true),
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
   group('re-list seam (EngramBrowserController)', () {
     Engram engramFor(EngramStore store) => Engram(
           id: 'w',
@@ -1057,6 +1122,14 @@ class _RwStore extends EngramStore {
 
   @override
   Future<void> deleteDirectory(String path) async => dirs.remove(path);
+
+  Map<String, Object?>? settings;
+
+  @override
+  Future<Map<String, Object?>?> readSettings() async => settings;
+
+  @override
+  Future<void> writeSettings(Map<String, Object?> next) async => settings = next;
 
   void _registerParents(String path) {
     final segments = path.split('/');

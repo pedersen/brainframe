@@ -324,11 +324,6 @@
     "description": "Title of the About screen (app-bar heading), which shows the app identity, version, and contact links."
   },
 
-  "aboutTooltip": "About BrainFrame",
-  "@aboutTooltip": {
-    "description": "Tooltip / accessibility label for the app-bar button that opens the About screen."
-  },
-
   "aboutTagline": "Your personal knowledge management system — capture, connect, and recall everything you know.",
   "@aboutTagline": {
     "description": "One-line description of the app shown under its name on the About screen."
@@ -374,5 +369,158 @@
     "placeholders": {
       "year": { "type": "String", "example": "2026–2028" }
     }
+  },
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title of the Settings screen (app-bar heading and the sidebar header), and the phone back-button label."
+  },
+
+  "settingsTooltip": "Settings",
+  "@settingsTooltip": {
+    "description": "Tooltip / accessibility label for the app-bar button that opens the Settings screen."
+  },
+
+  "settingsSearchPlaceholder": "Search all settings…",
+  "@settingsSearchPlaceholder": {
+    "description": "Placeholder text in the settings sidebar search field."
+  },
+
+  "settingsGroupCore": "Core",
+  "@settingsGroupCore": {
+    "description": "Sidebar group header for the app's built-in settings categories (shown uppercased)."
+  },
+
+  "settingsGroupPlugins": "Plugins",
+  "@settingsGroupPlugins": {
+    "description": "Sidebar group header for settings categories contributed by plugins (shown uppercased)."
+  },
+
+  "settingsAppearanceName": "Appearance",
+  "@settingsAppearanceName": {
+    "description": "Name of the Appearance settings category (theme and interface look)."
+  },
+
+  "settingsAppearanceDesc": "Theme and interface look.",
+  "@settingsAppearanceDesc": {
+    "description": "Subtitle of the Appearance settings category, shown under its name in the detail pane."
+  },
+
+  "settingsSectionTheme": "Theme",
+  "@settingsSectionTheme": {
+    "description": "Section header within Appearance for theme (light/dark) settings."
+  },
+
+  "settingsDefaultTheme": "Default theme",
+  "@settingsDefaultTheme": {
+    "description": "Setting row label for the device-wide default theme (light/dark/system)."
+  },
+
+  "settingsDefaultThemeDesc": "Used everywhere unless an engram overrides it.",
+  "@settingsDefaultThemeDesc": {
+    "description": "Description under the Default theme setting."
+  },
+
+  "settingsEngramTheme": "This engram",
+  "@settingsEngramTheme": {
+    "description": "Setting row label for the current engram's per-engram theme override."
+  },
+
+  "settingsEngramThemeDesc": "Override the theme just for the current engram.",
+  "@settingsEngramThemeDesc": {
+    "description": "Description under the per-engram theme override setting."
+  },
+
+  "settingsThemeFollowDefault": "Default",
+  "@settingsThemeFollowDefault": {
+    "description": "Per-engram theme option meaning 'use the device-wide default theme' (no override)."
+  },
+
+  "settingsSectionWindow": "Window & layout",
+  "@settingsSectionWindow": {
+    "description": "Section header within Appearance for per-device window and layout state."
+  },
+
+  "settingsResetLayout": "Reset to defaults",
+  "@settingsResetLayout": {
+    "description": "Row label for resetting the window size and sidebar width to their defaults."
+  },
+
+  "settingsResetLayoutDesc": "Clears the window size and sidebar width you've dragged to, so BrainFrame opens at its default layout next launch.",
+  "@settingsResetLayoutDesc": {
+    "description": "Description under the Reset window & layout setting: it discards the user's dragged window/sidebar sizes so defaults apply on next launch."
+  },
+
+  "settingsResetLayoutButton": "Reset",
+  "@settingsResetLayoutButton": {
+    "description": "Button that clears the saved window geometry and sidebar width."
+  },
+
+  "settingsResetLayoutDone": "Window and layout will reset to their defaults the next time you open BrainFrame.",
+  "@settingsResetLayoutDone": {
+    "description": "Confirmation shown after tapping Reset for window & layout."
+  },
+
+  "settingsThemeSystem": "System",
+  "@settingsThemeSystem": {
+    "description": "Color-scheme option: follow the operating system's light/dark setting."
+  },
+
+  "settingsThemeLight": "Light",
+  "@settingsThemeLight": {
+    "description": "Color-scheme option: always use the light theme."
+  },
+
+  "settingsThemeDark": "Dark",
+  "@settingsThemeDark": {
+    "description": "Color-scheme option: always use the dark theme."
+  },
+
+  "settingsAboutDesc": "Version, license, and links.",
+  "@settingsAboutDesc": {
+    "description": "Subtitle of the About settings category (used as the sidebar/category description)."
+  },
+
+  "settingsHousekeepingName": "Housekeeping",
+  "@settingsHousekeepingName": {
+    "description": "Name of the Housekeeping settings category (maintenance jobs on engrams), shown in the sidebar and as the pane heading."
+  },
+
+  "settingsHousekeepingDesc": "Maintenance jobs for your engrams.",
+  "@settingsHousekeepingDesc": {
+    "description": "Subtitle of the Housekeeping settings category, shown under its name in the sidebar."
+  },
+
+  "housekeepingIntro": "Forgetting an engram removes it from BrainFrame and the switcher. Its folder and files are left on disk — nothing is deleted.",
+  "@housekeepingIntro": {
+    "description": "Explanatory text at the top of the Housekeeping pane, clarifying that forgetting never deletes files."
+  },
+
+  "housekeepingEmpty": "Nothing to forget. Only engrams you've added from a folder can be forgotten.",
+  "@housekeepingEmpty": {
+    "description": "Shown in the Housekeeping pane when there are no forgettable engrams (ones added from a folder)."
+  },
+
+  "housekeepingMissing": "Missing",
+  "@housekeepingMissing": {
+    "description": "Badge on a Housekeeping row whose engram folder no longer resolves (a dangling entry)."
+  },
+
+  "housekeepingForget": "Forget",
+  "@housekeepingForget": {
+    "description": "Button that removes an engram from BrainFrame's registry (leaving its files); also the confirm-dialog action label."
+  },
+
+  "housekeepingConfirmTitle": "Forget “{name}”?",
+  "@housekeepingConfirmTitle": {
+    "description": "Title of the confirmation dialog before forgetting an engram.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Field Notebook" }
+    }
+  },
+
+  "housekeepingConfirmBody": "This removes it from BrainFrame. Its files stay on disk, untouched.",
+  "@housekeepingConfirmBody": {
+    "description": "Body of the confirmation dialog before forgetting an engram."
   }
 }
