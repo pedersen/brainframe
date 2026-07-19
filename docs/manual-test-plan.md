@@ -10,8 +10,9 @@ Hand it to yourself cold and follow the numbered steps — no thinking required.
   `main`). Roadmap features that are designed but not yet coded live in
   [Not yet testable](#not-yet-testable-the-frontier), with the reason each is
   out of reach — the reasons matter as much as the tests.
-- **Keep it current.** See [Maintenance rule](#maintenance-rule). The intent is
-  that this file changes in lockstep with the widgets it describes.
+- **Keep it current.** The maintenance rule lives in [CLAUDE.md](../CLAUDE.md)
+  under "Manual test plan": update this file in the same change as any
+  user-facing UI change, so it stays in lockstep with the widgets it describes.
 
 ## How to read the matrix
 
@@ -889,42 +890,3 @@ cases for these until the code exists.
 
 When any of these lands, move its row up into the matrix with concrete steps and
 per-platform verdicts, and delete it from this table.
-
----
-
-## Maintenance rule
-
-This rule is **recorded in [CLAUDE.md](../CLAUDE.md)** under "Manual test plan",
-and reproduced here for context:
-
-> `docs/manual-test-plan.md` is the human-run counterpart to the automated
-> tests — it covers UI and interaction bugs the widget tests can't see. It must
-> not rot.
->
-> - **Same-change rule:** whenever you add, change, or remove a user-facing
->   widget or interaction, update `docs/manual-test-plan.md` in the **same**
->   change (same PR). A user-facing UI change with no test-plan edit is
->   incomplete.
-> - **Flag it in the summary:** in the PR/change summary, list which test cases
->   you **added**, **changed**, or **invalidated**, by their IDs (e.g. "F10,
->   D5"). If a change moves a feature across the shipped ↔ frontier line, say so
->   (promote it out of "Not yet testable", or retire its cases).
-> - **Frontier discipline:** never write pass/fail steps for a feature that
->   isn't in `lib/` yet — put it in "Not yet testable" with the reason. When it
->   ships, promote it.
-> - **Reasons are load-bearing:** an "N/A — reason" cell is a claim about the
->   platform. If a change makes a feature apply where it previously didn't (or
->   vice-versa), fix the cell and its reason.
-
-This rule reflects three decisions:
-
-1. **Case IDs are required in the summary, not just prose.** Stable IDs (F-nn,
-   D-n) make "which cases changed" auditable and let a reviewer jump straight to
-   them. That's why every case above is numbered — the rule leans on it.
-2. **"Invalidated" is a first-class outcome, not just "added/changed."** The
-   most dangerous rot is a case that still *reads* fine but now tests removed
-   behavior. Calling out invalidation forces its deletion or rewrite.
-3. **A backstop lands as a non-blocking CI *warning*, never a merge block** —
-   `.github/workflows/test-plan-nudge.yml` posts a self-clearing sticky PR
-   comment when a PR changes UI code without updating this plan, and never fails
-   the check.
