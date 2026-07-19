@@ -18,9 +18,20 @@ markdown edge cases the tutorial engram is too small and too pristine to show.
   ULID so the engram's identity is stable across machines and CI. Do not
   regenerate it.
 - **Self-restoring.** Because the whole tree is committed, destructive manual
-  tests (delete / rename / create) are safe: run them, then `git checkout -- .`
-  to reset the fixture. This is the throwaway engram the visual-verification
-  rule asks for.
+  tests (delete / rename / create) are safe. Reset afterward, from the repo
+  root, with:
+
+  ```bash
+  git checkout -- test/fixtures/engram/ && git clean -fd test/fixtures/engram/
+  ```
+
+  Both halves are needed: `checkout` restores tracked files you edited or
+  deleted, and `git clean -fd` removes **untracked** byproducts a test creates —
+  folders you added, and the per-engram `.brainframe/settings.json` the app
+  writes on its first settings change. `checkout` alone leaves those behind, so
+  the next run would start from a poisoned state. (No `-x`, so nothing gitignored
+  is touched.) This is the throwaway engram the visual-verification rule asks
+  for.
 - **Not linted.** `test/fixtures/engram/**` is excluded from `markdownlint-cli2`
   (see `.markdownlint-cli2.jsonc`) precisely so the edge-case notes below can
   break the house style on purpose.
