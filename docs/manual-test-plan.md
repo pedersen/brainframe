@@ -62,10 +62,21 @@ read-only and show no edit affordances — use them only where a case says
 > [`test/fixtures/engram`](../test/fixtures/engram) — do **not** create a new
 > engram for this, and never run these cases against real notes. Open it on
 > desktop via the engram switcher → **Open folder…**, choosing that directory
-> (it carries a `.brainframe` marker, so it adopts as-is). Because the whole
-> tree is committed, reset it after any run with
-> `git checkout -- test/fixtures/engram`. On mobile / Pi, where **Open folder…**
-> isn't offered, create a scratch engram with **New engram** instead.
+> (it carries a `.brainframe` marker, so it adopts as-is). Reset it after any
+> run with:
+>
+> ```bash
+> git checkout -- test/fixtures/engram/ && git clean -fd test/fixtures/engram/
+> ```
+>
+> Both halves are needed: `checkout` restores tracked files you edited or
+> deleted, and `git clean -fd` removes **untracked** byproducts a test creates —
+> folders you added, and the per-engram `.brainframe/settings.json` the app
+> writes on the first settings change (e.g. a per-engram theme override, F19).
+> `checkout` alone leaves those behind, so the next run starts from a poisoned
+> state. (No `-x`, so nothing gitignored is touched.) On mobile / Pi, where
+> **Open folder…** isn't offered, create a scratch engram with **New engram**
+> instead.
 
 ---
 
@@ -377,7 +388,7 @@ snapshot.
 
 ### F11 — New note / new folder (H1 seed)
 
-> Field Notebook fixture only (see Safety); reset with `git checkout` after.
+> Field Notebook fixture only; reset afterward with checkout + clean (see Safety).
 
 **Steps:**
 
@@ -406,7 +417,7 @@ overwriting; the tree refreshes to show the new item and selects the new note.
 
 ### F12 — Rename (file / folder)
 
-> Field Notebook fixture only (see Safety); reset with `git checkout` after.
+> Field Notebook fixture only; reset afterward with checkout + clean (see Safety).
 
 **Steps:**
 
@@ -429,7 +440,7 @@ auto-numbered; renaming to the identical name is a no-op.
 
 ### F13 — Delete with confirmation (file / folder)
 
-> Field Notebook fixture only (see Safety); reset with `git checkout` after.
+> Field Notebook fixture only; reset afterward with checkout + clean (see Safety).
 
 **Steps:**
 
@@ -453,7 +464,7 @@ broken/blank pane.
 
 ### F14 — Move via folder picker
 
-> Field Notebook fixture only (see Safety); reset with `git checkout` after.
+> Field Notebook fixture only; reset afterward with checkout + clean (see Safety).
 
 **Steps:**
 
