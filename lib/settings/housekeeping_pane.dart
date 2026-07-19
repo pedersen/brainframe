@@ -15,7 +15,8 @@ typedef EngramForgetter = Future<void> Function(String id);
 /// from BrainFrame's list (and the switcher) without touching its files on disk.
 /// This is how a user clears a dangling entry (a folder they deleted) or simply
 /// stops managing a folder with BrainFrame. Only registry-backed engrams appear;
-/// built-in and in-app engrams aren't forgettable (see [EngramRepository.forget]).
+/// built-in and container engrams aren't forgettable (see
+/// [EngramRepository.forget]).
 ///
 /// A custom [SettingsCategory] detail pane (like About), because it renders a
 /// live list with actions rather than a fixed set of control rows. It depends on
