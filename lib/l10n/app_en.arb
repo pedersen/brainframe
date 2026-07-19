@@ -446,9 +446,9 @@
     "description": "Row label for resetting the window size and sidebar width to their defaults."
   },
 
-  "settingsResetLayoutDesc": "Restores the window size and sidebar width you set by dragging. Applies on next launch.",
+  "settingsResetLayoutDesc": "Clears the window size and sidebar width you've dragged to, so BrainFrame opens at its default layout next launch.",
   "@settingsResetLayoutDesc": {
-    "description": "Description under the Reset window & layout setting, noting it takes effect on next launch."
+    "description": "Description under the Reset window & layout setting: it discards the user's dragged window/sidebar sizes so defaults apply on next launch."
   },
 
   "settingsResetLayoutButton": "Reset",
