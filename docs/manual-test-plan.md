@@ -10,8 +10,7 @@ Hand it to yourself cold and follow the numbered steps — no thinking required.
   `main`). Roadmap features that are designed but not yet coded live in
   [Not yet testable](#not-yet-testable-the-frontier), with the reason each is
   out of reach — the reasons matter as much as the tests.
-- **Keep it current.** See
-  [Maintenance rule](#maintenance-rule-proposed-for-claudemd). The intent is
+- **Keep it current.** See [Maintenance rule](#maintenance-rule). The intent is
   that this file changes in lockstep with the widgets it describes.
 
 ## How to read the matrix
@@ -893,13 +892,11 @@ per-platform verdicts, and delete it from this table.
 
 ---
 
-## Maintenance rule (proposed for CLAUDE.md)
+## Maintenance rule
 
-Draft to add under **Project Context** (or a new "Manual test plan" section) in
-[CLAUDE.md](../CLAUDE.md):
+This rule is **recorded in [CLAUDE.md](../CLAUDE.md)** under "Manual test plan",
+and reproduced here for context:
 
-> ### Manual test plan upkeep
->
 > `docs/manual-test-plan.md` is the human-run counterpart to the automated
 > tests — it covers UI and interaction bugs the widget tests can't see. It must
 > not rot.
