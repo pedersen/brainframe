@@ -3,36 +3,50 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/gen/app_localizations.dart';
-import '../widgets/app_scaffold.dart';
 
 /// Opens external URIs; injectable so tests can observe launches without the
 /// url_launcher plugin. Returns true when the platform accepted the request.
 typedef UriLauncher = Future<bool> Function(Uri uri);
 
-/// Resolves the app's version + build so the About screen can be pushed from
-/// anywhere with a single call. Injectable for tests.
+/// Resolves the app's version + build. Injectable for tests.
 typedef AppInfoLoader = Future<PackageInfo> Function();
 
-/// Pushes the [AboutScreen] as a full page, resolving the real version/build
-/// first. This is the seam a future Settings screen reuses — it can either call
-/// this to push About standalone, or embed [AboutScreen] directly.
-Future<void> openAboutScreen(
-  BuildContext context, {
-  AppInfoLoader loadInfo = PackageInfo.fromPlatform,
-}) async {
-  final info = await loadInfo();
-  if (!context.mounted) return;
-  await Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => AboutScreen(
-        version: info.version,
-        buildNumber: info.buildNumber,
-      ),
-    ),
-  );
+/// Self-loading wrapper around [AboutView] for the Settings "About" category:
+/// resolves the real version/build via [loadInfo], then shows the About content.
+/// [loadInfo] / [launcher] / [currentYear] are injectable so it stays testable.
+class AboutPane extends StatelessWidget {
+  const AboutPane({
+    super.key,
+    this.loadInfo = PackageInfo.fromPlatform,
+    this.launcher = AboutView._launchExternal,
+    this.currentYear,
+  });
+
+  final AppInfoLoader loadInfo;
+  final UriLauncher launcher;
+  final int? currentYear;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<PackageInfo>(
+      future: loadInfo(),
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        if (info == null) {
+          return const Center(child: CircularProgressIndicator.adaptive());
+        }
+        return AboutView(
+          version: info.version,
+          buildNumber: info.buildNumber,
+          launcher: launcher,
+          currentYear: currentYear,
+        );
+      },
+    );
+  }
 }
 
-/// The About screen: app identity, version, and ways to reach the product.
+/// The About content: app identity, version, and ways to reach the product.
 ///
 /// Recreates the Claude Design handoff layout (logo tile → name + tagline →
 /// version pill → links card → footer) using the app's own theme rather than
@@ -40,11 +54,11 @@ Future<void> openAboutScreen(
 /// safe. The single fixed colour is the logo tile: the PNG has a baked-in
 /// near-black background, so it always sits on a dark tile to look intentional.
 ///
-/// Stateless and self-contained — [openAboutScreen] supplies the version/build,
-/// and everything else is derived from [Theme]/[AppLocalizations]. That keeps
-/// it trivial to drop inside a Settings screen later.
-class AboutScreen extends StatelessWidget {
-  const AboutScreen({
+/// A plain scrollable column with no scaffold of its own, so it embeds directly
+/// in the Settings detail pane (see [AboutPane], which supplies the real
+/// version/build). Everything else derives from [Theme]/[AppLocalizations].
+class AboutView extends StatelessWidget {
+  const AboutView({
     super.key,
     required this.version,
     required this.buildNumber,
@@ -83,42 +97,39 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AppScaffold(
-      title: l10n.aboutTitle,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 56, 20, 40),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Align(child: _LogoTile()),
-                const SizedBox(height: 28),
-                _identity(context, l10n),
-                const SizedBox(height: 28),
-                Align(child: _versionPill(context, l10n)),
-                const SizedBox(height: 28),
-                _LinksCard(
-                  rows: [
-                    _LinkRowData(
-                      icon: Icons.public_outlined,
-                      label: l10n.aboutWebsiteLabel,
-                      value: l10n.aboutWebsiteValue,
-                      onTap: () => launcher(_websiteUri),
-                    ),
-                    _LinkRowData(
-                      icon: Icons.mail_outline,
-                      label: l10n.aboutContactLabel,
-                      value: l10n.aboutContactValue,
-                      onTap: () => launcher(_contactUri),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                _footer(context, l10n),
-              ],
-            ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 56, 20, 40),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Align(child: _LogoTile()),
+              const SizedBox(height: 28),
+              _identity(context, l10n),
+              const SizedBox(height: 28),
+              Align(child: _versionPill(context, l10n)),
+              const SizedBox(height: 28),
+              _LinksCard(
+                rows: [
+                  _LinkRowData(
+                    icon: Icons.public_outlined,
+                    label: l10n.aboutWebsiteLabel,
+                    value: l10n.aboutWebsiteValue,
+                    onTap: () => launcher(_websiteUri),
+                  ),
+                  _LinkRowData(
+                    icon: Icons.mail_outline,
+                    label: l10n.aboutContactLabel,
+                    value: l10n.aboutContactValue,
+                    onTap: () => launcher(_contactUri),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+              _footer(context, l10n),
+            ],
           ),
         ),
       ),
@@ -134,7 +145,8 @@ class AboutScreen extends StatelessWidget {
           textAlign: TextAlign.center,
           style: theme.textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w700,
-            letterSpacing: -0.02 * (theme.textTheme.headlineMedium?.fontSize ?? 28),
+            letterSpacing:
+                -0.02 * (theme.textTheme.headlineMedium?.fontSize ?? 28),
           ),
         ),
         const SizedBox(height: 8),
@@ -180,9 +192,7 @@ class AboutScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: scheme.primary,
-                boxShadow: [
-                  BoxShadow(color: scheme.primary, blurRadius: 8),
-                ],
+                boxShadow: [BoxShadow(color: scheme.primary, blurRadius: 8)],
               ),
             ),
             const SizedBox(width: 10),
@@ -208,9 +218,8 @@ class AboutScreen extends StatelessWidget {
   /// it, then a `2026–<current>` range. Guards against a current year earlier
   /// than founding (e.g. a misconfigured clock) by never showing a backwards
   /// range.
-  String _copyrightYears(int current) => current <= _foundingYear
-      ? '$_foundingYear'
-      : '$_foundingYear–$current';
+  String _copyrightYears(int current) =>
+      current <= _foundingYear ? '$_foundingYear' : '$_foundingYear–$current';
 
   Widget _footer(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
@@ -228,8 +237,9 @@ class AboutScreen extends StatelessWidget {
 /// The accent-soft fill used behind the version pill and link icon chips —
 /// a low-opacity wash of the theme's primary, matching the handoff's
 /// `--accent-soft` token while staying theme-driven.
-Color _accentSoft(ColorScheme scheme) =>
-    scheme.primary.withValues(alpha: scheme.brightness == Brightness.dark ? 0.12 : 0.08);
+Color _accentSoft(ColorScheme scheme) => scheme.primary.withValues(
+  alpha: scheme.brightness == Brightness.dark ? 0.12 : 0.08,
+);
 
 /// The 132×132 rounded logo tile with a radial accent glow behind the logo.
 class _LogoTile extends StatelessWidget {
@@ -242,7 +252,7 @@ class _LogoTile extends StatelessWidget {
       width: 132,
       height: 132,
       decoration: BoxDecoration(
-        color: AboutScreen._logoTileColor,
+        color: AboutView._logoTileColor,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: scheme.outlineVariant),
         boxShadow: [
@@ -390,7 +400,11 @@ class _LinkRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 14),
-                Icon(Icons.chevron_right, size: 16, color: scheme.onSurfaceVariant),
+                Icon(
+                  Icons.chevron_right,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),

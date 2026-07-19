@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:typed_data';
@@ -15,6 +16,10 @@ const String markerDirectoryName = '.brainframe';
 
 /// The metadata file inside the marker directory.
 const String metadataFileName = 'engram.json';
+
+/// The per-engram settings file inside the marker directory (the settings
+/// store's per-engram tier; see [EngramStore.readSettings]).
+const String settingsFileName = 'settings.json';
 
 /// A read-write [EngramStore] over an on-disk directory.
 ///
@@ -105,6 +110,41 @@ class FileSystemEngramStore extends EngramStore {
     // the contract. EngramFileOps empties a folder's files and deeper shells
     // before removing it.
     await Directory(_resolve(path)).delete();
+  }
+
+  /// The per-engram settings file, inside the app-owned marker directory so it
+  /// travels with the engram and stays out of the content listing.
+  File get _settingsFile =>
+      File('$_rootPath/$markerDirectoryName/$settingsFileName');
+
+  @override
+  Future<Map<String, Object?>?> readSettings() async {
+    final file = _settingsFile;
+    if (!await file.exists()) return null;
+    try {
+      final decoded = jsonDecode(await file.readAsString());
+      if (decoded is Map<String, dynamic>) {
+        return Map<String, Object?>.of(decoded);
+      }
+    } catch (error, stackTrace) {
+      // A corrupt settings file degrades to defaults, never crashes the app.
+      developer.log(
+        'Ignoring malformed $markerDirectoryName/$settingsFileName at $_rootPath.',
+        name: 'brainframe.engram.fs',
+        level: 900,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+    return null;
+  }
+
+  @override
+  Future<void> writeSettings(Map<String, Object?> settings) async {
+    final file = _settingsFile;
+    await file.parent.create(recursive: true); // ensure .brainframe/ exists
+    final text = '${const JsonEncoder.withIndent('  ').convert(settings)}\n';
+    await _atomicWrite(file, Uint8List.fromList(utf8.encode(text)));
   }
 
   /// Writes [bytes] to [file] atomically (Decision 5): write a sibling temp
@@ -219,8 +259,9 @@ Future<Engram> openOrCreateFileSystemEngram(
   EngramLocation location, {
   required String displayName,
 }) async {
-  final metaFile =
-      File('${location.path}/$markerDirectoryName/$metadataFileName');
+  final metaFile = File(
+    '${location.path}/$markerDirectoryName/$metadataFileName',
+  );
   if (await metaFile.exists()) {
     return openFileSystemEngram(location);
   }
@@ -232,8 +273,9 @@ Future<Engram> openOrCreateFileSystemEngram(
 /// Throws [StateError] if there is no marker there; propagates
 /// [EngramMetadataException] if the marker is malformed.
 Future<Engram> openFileSystemEngram(EngramLocation location) async {
-  final metaFile =
-      File('${location.path}/$markerDirectoryName/$metadataFileName');
+  final metaFile = File(
+    '${location.path}/$markerDirectoryName/$metadataFileName',
+  );
   if (!await metaFile.exists()) {
     throw StateError('No engram marker at ${location.path}');
   }
@@ -275,8 +317,9 @@ Future<List<Engram>> discoverContainerEngrams(String containerPath) async {
   final engrams = <Engram>[];
   await for (final entity in container.list(followLinks: false)) {
     if (entity is! Directory) continue;
-    final marker =
-        File('${entity.path}/$markerDirectoryName/$metadataFileName');
+    final marker = File(
+      '${entity.path}/$markerDirectoryName/$metadataFileName',
+    );
     if (!await marker.exists()) continue;
     try {
       engrams.add(await openFileSystemEngram(EngramLocation(entity.path)));
@@ -303,8 +346,10 @@ Future<Engram> createContainerEngram(
   String containerPath,
   String displayName,
 ) async {
-  final location =
-      await _freeChildLocation(containerPath, _safeFolderName(displayName));
+  final location = await _freeChildLocation(
+    containerPath,
+    _safeFolderName(displayName),
+  );
   return createFileSystemEngram(location: location, displayName: displayName);
 }
 

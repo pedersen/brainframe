@@ -42,6 +42,14 @@ void main() {
     test('deleteDirectory throws UnsupportedError by default', () {
       expect(() => store.deleteDirectory('folder'), throwsUnsupportedError);
     });
+
+    test('readSettings returns null by default', () async {
+      expect(await store.readSettings(), isNull);
+    });
+
+    test('writeSettings throws UnsupportedError by default', () {
+      expect(() => store.writeSettings({'a': 1}), throwsUnsupportedError);
+    });
   });
 
   test('listDirectories defaults to none for backends without directories',

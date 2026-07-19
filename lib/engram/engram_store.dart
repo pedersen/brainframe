@@ -63,18 +63,16 @@ abstract class EngramStore {
   /// backend. Defaults to a read-only store that throws [UnsupportedError];
   /// read-write stores override it, and callers gate on `Engram.readOnly`
   /// rather than catching.
-  Future<void> delete(String path) => throw UnsupportedError(
-        'This store is read-only; cannot delete "$path".',
-      );
+  Future<void> delete(String path) =>
+      throw UnsupportedError('This store is read-only; cannot delete "$path".');
 
   /// Moves (or renames) the file at [from] to [to], both engram-relative.
   ///
   /// The destination's parent directories are created as needed; the
   /// destination must not already exist. Defaults to a read-only store that
   /// throws [UnsupportedError]; read-write stores override it.
-  Future<void> move(String from, String to) => throw UnsupportedError(
-        'This store is read-only; cannot move "$from".',
-      );
+  Future<void> move(String from, String to) =>
+      throw UnsupportedError('This store is read-only; cannot move "$from".');
 
   /// Creates an empty directory at engram-relative [path], including any
   /// missing parents; a no-op if it already exists.
@@ -84,8 +82,8 @@ abstract class EngramStore {
   /// of a folder move. Defaults to a read-only store that throws
   /// [UnsupportedError]; read-write stores override it.
   Future<void> createDirectory(String path) => throw UnsupportedError(
-        'This store is read-only; cannot create directory "$path".',
-      );
+    'This store is read-only; cannot create directory "$path".',
+  );
 
   /// Removes the directory at engram-relative [path], which must be empty.
   ///
@@ -95,8 +93,8 @@ abstract class EngramStore {
   /// is an error, surfaced by the backend. Defaults to a read-only store that
   /// throws [UnsupportedError]; read-write stores override it.
   Future<void> deleteDirectory(String path) => throw UnsupportedError(
-        'This store is read-only; cannot delete directory "$path".',
-      );
+    'This store is read-only; cannot delete directory "$path".',
+  );
 
   /// Reads the file at engram-relative [path] as UTF-8 text.
   ///
@@ -110,6 +108,27 @@ abstract class EngramStore {
   /// [writeBytes] does.
   Future<void> writeString(String path, String contents) =>
       writeBytes(path, Uint8List.fromList(utf8.encode(contents)));
+
+  /// Reads this engram's app-owned **settings** blob — the per-engram tier of
+  /// the settings store — or null when none is stored.
+  ///
+  /// This is app-owned *configuration*, not engram content: it lives beside the
+  /// marker (in `.brainframe/`), never appears in [list], and travels with the
+  /// engram so per-engram preferences sync wherever the folder goes. It is kept
+  /// separate from [readBytes]/[writeBytes], which speak in content paths and
+  /// refuse the marker tree. Malformed stored data degrades to null rather than
+  /// throwing — settings are non-critical and fall back to their defaults.
+  ///
+  /// Defaults to none, so read-only backends (the asset bundle) need not
+  /// implement it; read-write stores override it.
+  Future<Map<String, Object?>?> readSettings() async => null;
+
+  /// Writes this engram's app-owned settings blob (see [readSettings]).
+  ///
+  /// Read-only stores (the asset bundle) throw [UnsupportedError]; callers gate
+  /// on `Engram.readOnly` rather than catching it.
+  Future<void> writeSettings(Map<String, Object?> settings) async =>
+      throw UnsupportedError('This store is read-only; cannot write settings.');
 
   /// Releases any resources this store holds — an open location handle, a file
   /// watcher — when its engram is switched away from or the app tears down.

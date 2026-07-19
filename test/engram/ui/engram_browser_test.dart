@@ -345,6 +345,49 @@ void main() {
     });
   });
 
+  group('last-opened note (per-engram tier)', () {
+    Engram engramFor(_RwStore store) => Engram(
+          id: 'w',
+          displayName: 'W',
+          readOnly: false,
+          store: store,
+        );
+
+    testWidgets('restores the stored note on open, over the index default',
+        (tester) async {
+      setWidth(tester, 1000);
+      final store = _RwStore({'index.md': '# Index', 'other.md': '# Other'})
+        ..settings = {'lastOpenedNote': 'other.md'};
+
+      await tester.pumpWidget(harnessFor(repo(), engramFor(store)));
+      await tester.pumpAndSettle();
+
+      // Restored 'other.md' rather than defaulting to index.md (breadcrumb).
+      expect(find.text('other.md'), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byType(MarkdownEditorPane),
+          matching: find.textContaining('Other', findRichText: true),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('persists the note into the engram when one is opened',
+        (tester) async {
+      setWidth(tester, 1000);
+      final store = _RwStore({'index.md': '# Index', 'other.md': '# Other'});
+
+      await tester.pumpWidget(harnessFor(repo(), engramFor(store)));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('other.md'));
+      await tester.pumpAndSettle();
+
+      expect(store.settings?['lastOpenedNote'], 'other.md');
+    });
+  });
+
   group('re-list seam (EngramBrowserController)', () {
     Engram engramFor(EngramStore store) => Engram(
           id: 'w',
@@ -1057,6 +1100,14 @@ class _RwStore extends EngramStore {
 
   @override
   Future<void> deleteDirectory(String path) async => dirs.remove(path);
+
+  Map<String, Object?>? settings;
+
+  @override
+  Future<Map<String, Object?>?> readSettings() async => settings;
+
+  @override
+  Future<void> writeSettings(Map<String, Object?> next) async => settings = next;
 
   void _registerParents(String path) {
     final segments = path.split('/');

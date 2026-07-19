@@ -452,4 +452,45 @@ void main() {
       );
     });
   });
+
+  group('per-engram settings', () {
+    late EngramLocation loc;
+    late FileSystemEngramStore store;
+
+    setUp(() async {
+      loc = locFor('Notes');
+      await createFileSystemEngram(location: loc, displayName: 'Notes');
+      store = FileSystemEngramStore(loc);
+    });
+
+    test('readSettings is null before anything is written', () async {
+      expect(await store.readSettings(), isNull);
+    });
+
+    test('writeSettings then readSettings round-trips', () async {
+      await store.writeSettings({'fmt': 'YYYY-MM-DD', 'weeks': true, 'n': 3});
+      expect(await store.readSettings(), {
+        'fmt': 'YYYY-MM-DD',
+        'weeks': true,
+        'n': 3,
+      });
+    });
+
+    test('settings live in .brainframe and never surface as content', () async {
+      await store.writeSettings({'a': 1});
+      expect(
+        File('${loc.path}/.brainframe/settings.json').existsSync(),
+        isTrue,
+      );
+      // The fixture has no content files, and the settings file is app-owned.
+      expect(await store.list(), isEmpty);
+    });
+
+    test('a malformed settings file degrades to null', () async {
+      await File(
+        '${loc.path}/.brainframe/settings.json',
+      ).writeAsString('{ not valid json');
+      expect(await store.readSettings(), isNull);
+    });
+  });
 }

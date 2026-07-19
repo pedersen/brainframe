@@ -8,6 +8,8 @@ import 'cli_output.dart';
 import 'engram/engram.dart';
 import 'engram/engram_repository.dart';
 import 'engram/fs/fs_store.dart';
+import 'settings/app_settings_controller.dart';
+import 'settings/settings_store.dart';
 import 'startup_options.dart';
 import 'window/window_state.dart';
 
@@ -48,10 +50,21 @@ Future<void> main(List<String> args) async {
     containerPathResolver: applicationEngramContainerPath,
   );
 
-  runApp(BrainFrameApp(
-    repository: repository,
-    resolveInitialEngram: _initialEngramResolver(options, repository),
-  ));
+  // Look-and-feel state (the device-default theme), restored from the settings
+  // store's per-device tier. With --ignore-config the store is in-memory, so
+  // this resolves to defaults. Per-engram theme overrides load once the active
+  // engram is known (see AppSettingsController.setActiveEngram).
+  final settingsController = await AppSettingsController.load(
+    DeviceSettingsBackend(SharedPreferencesAsync()),
+  );
+
+  runApp(
+    BrainFrameApp(
+      repository: repository,
+      resolveInitialEngram: _initialEngramResolver(options, repository),
+      settingsController: settingsController,
+    ),
+  );
 }
 
 /// The startup engram resolver. With `--engram <path>` it opens that folder

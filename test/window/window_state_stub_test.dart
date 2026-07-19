@@ -7,4 +7,9 @@ void main() {
     // the stub simply returns. Calling it here covers that path.
     await expectLater(initWindowManager(), completes);
   });
+
+  test('stub suspendWindowStatePersistence is a no-op', () {
+    // No OS window to persist; the stub just returns.
+    expect(suspendWindowStatePersistence, returnsNormally);
+  });
 }

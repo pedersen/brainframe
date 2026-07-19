@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:brainframe/about/about_screen.dart';
-import 'package:brainframe/theme/app_settings.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,8 +27,8 @@ class _LogoManifest implements AssetManifest {
       ];
 }
 
-/// Serves the real `brainframe.png` bytes so the About screen's logo resolves
-/// in widget tests (the manifest lookup would otherwise throw).
+/// Serves the real `brainframe.png` bytes so the About logo resolves in widget
+/// tests (the manifest lookup would otherwise throw).
 class _LogoBundle extends CachingAssetBundle {
   _LogoBundle(this._png);
   final Uint8List _png;
@@ -51,21 +49,19 @@ class _LogoBundle extends CachingAssetBundle {
 void main() {
   final logoBytes = File('brainframe.png').readAsBytesSync();
 
-  /// Wraps [child] with app settings (for AppScaffold), the localizations, and
-  /// a bundle that can serve the logo. AppSettings sits above the MaterialApp,
-  /// as in the real app, so pushed routes see it too.
+  /// Wraps [child] with the localizations, a bundle that can serve the logo, and
+  /// a [Scaffold] (Material ancestor) — [AboutView] has no scaffold of its own,
+  /// so its link-row InkWells need one, as the Settings screen provides in-app.
   Widget host(Widget child, {Locale? locale}) => DefaultAssetBundle(
         bundle: _LogoBundle(logoBytes),
-        child: AppSettings(
-          child: localizedApp(home: child, locale: locale),
-        ),
+        child: localizedApp(home: Scaffold(body: child), locale: locale),
       );
 
-  Widget screen({
+  Widget aboutView({
     UriLauncher? launcher,
     int? currentYear,
   }) =>
-      AboutScreen(
+      AboutView(
         version: '2.4.1',
         buildNumber: '1847',
         launcher: launcher ?? (_) async => true,
@@ -73,7 +69,7 @@ void main() {
       );
 
   testWidgets('shows app identity and tagline', (tester) async {
-    await tester.pumpWidget(host(screen()));
+    await tester.pumpWidget(host(aboutView()));
 
     expect(find.text('BrainFrame'), findsOneWidget);
     expect(
@@ -84,13 +80,10 @@ void main() {
 
   testWidgets('version pill shows version, build, and a screen-reader label',
       (tester) async {
-    await tester.pumpWidget(host(screen()));
+    await tester.pumpWidget(host(aboutView()));
 
     // The pill renders as rich text: 'v2.4.1 · build 1847'.
-    expect(
-      find.textContaining('v2.4.1', findRichText: true),
-      findsOneWidget,
-    );
+    expect(find.textContaining('v2.4.1', findRichText: true), findsOneWidget);
     expect(
       find.textContaining('build 1847', findRichText: true),
       findsOneWidget,
@@ -102,7 +95,7 @@ void main() {
   testWidgets('website row launches the site in the external browser',
       (tester) async {
     final launched = <Uri>[];
-    await tester.pumpWidget(host(screen(launcher: (uri) async {
+    await tester.pumpWidget(host(aboutView(launcher: (uri) async {
       launched.add(uri);
       return true;
     })));
@@ -116,7 +109,7 @@ void main() {
 
   testWidgets('contact row launches a mailto link', (tester) async {
     final launched = <Uri>[];
-    await tester.pumpWidget(host(screen(launcher: (uri) async {
+    await tester.pumpWidget(host(aboutView(launcher: (uri) async {
       launched.add(uri);
       return true;
     })));
@@ -129,12 +122,9 @@ void main() {
   });
 
   testWidgets('link rows expose combined button semantics', (tester) async {
-    await tester.pumpWidget(host(screen()));
+    await tester.pumpWidget(host(aboutView()));
 
-    expect(
-      find.bySemanticsLabel('Website: brainframe.tech'),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel('Website: brainframe.tech'), findsOneWidget);
     expect(
       find.bySemanticsLabel('Contact: getbrainframe@gmail.com'),
       findsOneWidget,
@@ -143,51 +133,35 @@ void main() {
 
   testWidgets('footer shows only the founding year during that year',
       (tester) async {
-    await tester.pumpWidget(host(screen(currentYear: 2026)));
+    await tester.pumpWidget(host(aboutView(currentYear: 2026)));
 
     expect(find.textContaining('© 2026 BrainFrame'), findsOneWidget);
   });
 
   testWidgets('footer grows into a range in later years', (tester) async {
-    await tester.pumpWidget(host(screen(currentYear: 2031)));
+    await tester.pumpWidget(host(aboutView(currentYear: 2031)));
 
     expect(find.textContaining('© 2026–2031 BrainFrame'), findsOneWidget);
   });
 
   testWidgets('footer never shows a backwards range on an early clock',
       (tester) async {
-    await tester.pumpWidget(host(screen(currentYear: 2020)));
+    await tester.pumpWidget(host(aboutView(currentYear: 2020)));
 
     expect(find.textContaining('© 2026 BrainFrame'), findsOneWidget);
   });
 
   testWidgets('footer defaults to the real current year when none is given',
       (tester) async {
-    await tester.pumpWidget(host(screen()));
+    await tester.pumpWidget(host(aboutView()));
 
     final now = DateTime.now().year;
-    final expected = now <= 2026 ? '© 2026 BrainFrame' : '© 2026–$now BrainFrame';
+    final expected =
+        now <= 2026 ? '© 2026 BrainFrame' : '© 2026–$now BrainFrame';
     expect(find.textContaining(expected), findsOneWidget);
   });
 
-  testWidgets('renders inside the Cupertino scaffold too', (tester) async {
-    await tester.pumpWidget(
-      host(
-        CupertinoTheme(
-          data: const CupertinoThemeData(),
-          child: MediaQuery(
-            data: const MediaQueryData(platformBrightness: Brightness.dark),
-            child: screen(),
-          ),
-        ),
-      ),
-    );
-
-    // AppScaffold heading still resolves regardless of design language.
-    expect(find.text('About'), findsWidgets);
-  });
-
-  testWidgets('openAboutScreen pushes the About screen with real app info',
+  testWidgets('AboutPane loads real app info and shows the About content',
       (tester) async {
     Future<PackageInfo> fakeInfo() async => PackageInfo(
           appName: 'BrainFrame',
@@ -197,21 +171,8 @@ void main() {
         );
 
     await tester.pumpWidget(
-      host(
-        Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: TextButton(
-                onPressed: () => openAboutScreen(context, loadInfo: fakeInfo),
-                child: const Text('open about'),
-              ),
-            ),
-          ),
-        ),
-      ),
+      host(AboutPane(loadInfo: fakeInfo, launcher: (_) async => true)),
     );
-
-    await tester.tap(find.text('open about'));
     await tester.pumpAndSettle();
 
     expect(find.text('BrainFrame'), findsWidgets);
