@@ -58,8 +58,15 @@ markdown edge cases the tutorial engram is too small and too pristine to show.
   percent-encoded destinations (`Reading%20List%20MoC.md`). Exercises intra-engram
   navigation to spaced filenames, which silently did nothing before the link
   resolver decoded `%20`.
+- `field-data-export.zip` — a `.zip` (an opaque container), here as the
+  **permanently** unsupported file type: an archive is not a document, so the app
+  will never render it inline. It is the stable surface for the unsupported-format
+  placeholder (plan case F8), unlike the deferred PDF/EPUB below — those *will*
+  get real viewers, so a case built on them would rot once they land. Treat it as
+  a stand-in for any binary the app will never display.
 
 ## Not here yet
 
 A PDF and an EPUB belong here eventually, but nothing renders them yet, so they
-are deferred.
+are deferred. When their viewers land they stop being unsupported — which is why
+`field-data-export.zip` above, not a PDF, is the durable F8 fixture.
