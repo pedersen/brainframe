@@ -386,6 +386,28 @@ void main() {
 
       expect(store.settings?['lastOpenedNote'], 'other.md');
     });
+
+    testWidgets('a stored note deleted while closed falls back gracefully',
+        (tester) async {
+      setWidth(tester, 1000);
+      // Last session recorded 'gone.md', but it was deleted while BrainFrame
+      // was closed, so it no longer appears in the engram's listing.
+      final store = _RwStore({'index.md': '# Index'})
+        ..settings = {'lastOpenedNote': 'gone.md'};
+
+      await tester.pumpWidget(harnessFor(repo(), engramFor(store)));
+      await tester.pumpAndSettle();
+
+      // Falls back to the index default — never tries to open the missing note.
+      expect(find.text('gone.md'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(MarkdownEditorPane),
+          matching: find.textContaining('Index', findRichText: true),
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   group('re-list seam (EngramBrowserController)', () {
