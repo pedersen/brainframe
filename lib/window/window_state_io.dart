@@ -75,7 +75,7 @@ Future<void> initWindowManager() async {
 
   // Persist on close as well as on change, so the final geometry is never lost.
   await windowManager.setPreventClose(true);
-  windowManager.addListener(_WindowStatePersister(store));
+  windowManager.addListener(WindowStatePersister(store));
 }
 
 /// Persists window geometry whenever it changes.
@@ -84,11 +84,19 @@ Future<void> initWindowManager() async {
 /// macOS and Windows emit the past-tense `resized`/`moved` variants. We listen
 /// for both and debounce, since the present-tense events fire continuously
 /// during a drag.
-class _WindowStatePersister extends WindowListener {
-  _WindowStatePersister(this._store);
+@visibleForTesting
+class WindowStatePersister extends WindowListener {
+  WindowStatePersister(this._store);
 
   final SettingsStore _store;
   Timer? _debounce;
+
+  /// True once a close is underway. `windowManager.destroy()` re-fires the GTK
+  /// delete-event, which re-enters [onWindowClose]; without this guard the
+  /// second entry runs a redundant save and `destroy()` while the engine is
+  /// already tearing down, which on Linux/Wayland stalls the exit for ~1s and
+  /// then segfaults. See [onWindowClose].
+  bool _closing = false;
 
   void _scheduleSave() {
     _debounce?.cancel();
@@ -160,6 +168,10 @@ class _WindowStatePersister extends WindowListener {
 
   @override
   Future<void> onWindowClose() async {
+    // `destroy()` below re-fires the delete-event and re-enters this handler;
+    // ignore the re-entry so we save and destroy exactly once (see [_closing]).
+    if (_closing) return;
+    _closing = true;
     _debounce?.cancel();
     try {
       await _save();
