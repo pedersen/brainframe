@@ -34,6 +34,15 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "Debug" "Profile" "Release")
 endif()
 
+# Give debug builds a distinct application ID so a debug build and a
+# release/profile build register as separate apps — separate WM_CLASS and
+# GApplication ID, and thus separate .desktop mapping and window grouping.
+# This keys off the Flutter build mode (a separate CMake configure per mode),
+# so switching between debug and release needs no manual editing or reverting.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(APPLICATION_ID "${APPLICATION_ID}.debug")
+endif()
+
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by

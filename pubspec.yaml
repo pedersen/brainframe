@@ -93,6 +93,9 @@ dev_dependencies:
 # Regenerate with: dart run flutter_launcher_icons
 # Linux has no in-toolchain launcher-icon mechanism, so it is handled at
 # packaging time (a .desktop entry plus icon) rather than here.
+# Debug builds use a separate "dev" icon (brainframe-dev.png), generated for
+# every platform by `python3 tool/gen_debug_icons.py` — see
+# docs/debug-build-identity.md.
 flutter_launcher_icons:
   image_path: "brainframe.png"
   android: true

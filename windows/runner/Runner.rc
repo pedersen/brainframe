@@ -51,8 +51,15 @@ END
 //
 
 // Icon with lowest ID value placed first to ensure application icon
-// remains consistent on all systems.
+// remains consistent on all systems. Debug builds use a distinct "dev" icon so
+// a debug build is visually distinguishable from a release/profile build (see
+// docs/debug-build-identity.md). _DEBUG is defined only for the Debug
+// configuration (windows/CMakeLists.txt).
+#ifdef _DEBUG
+IDI_APP_ICON            ICON                    "resources\\app_icon_debug.ico"
+#else
 IDI_APP_ICON            ICON                    "resources\\app_icon.ico"
+#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
