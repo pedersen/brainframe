@@ -56,20 +56,65 @@ def write(img: Image.Image, path: str) -> None:
     print("  " + os.path.relpath(path, REPO))
 
 
+# The dev artwork's "dev" badge sits in a top-right *corner* — the worst place
+# for an Android adaptive icon, because launchers crop the outer ~17% of the
+# canvas and then mask the result to a circle/squircle, eating the corners.
+# Filling the tile (small inset) makes it worse: the badge is cropped away. So
+# the debug adaptive icon does the opposite — it insets the whole square well
+# inside the launcher "safe zone" so the entire image (badge included) survives
+# any mask, and paints the adaptive background with the artwork's own dark tone
+# so the shrunk square reads as one cohesive dark icon rather than art floating
+# on a plate. (The pre-API-26 legacy bitmap stays full-square and unmasked.)
+_ADAPTIVE_INSET = "25%"
+_ADAPTIVE_ICON_XML = """<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@color/ic_launcher_background"/>
+  <foreground>
+      <inset
+          android:drawable="@drawable/ic_launcher_foreground"
+          android:inset="{inset}" />
+  </foreground>
+</adaptive-icon>
+""".format(inset=_ADAPTIVE_INSET)
+
+
+def _corner_hex(src: Image.Image) -> str:
+    w, h = src.size
+    r, g, b = src.crop((0, 0, w // 12, h // 12)).resize((1, 1), Image.LANCZOS).getpixel((0, 0))
+    return f"#{r:02X}{g:02X}{b:02X}"
+
+
 def gen_android(src: Image.Image) -> None:
     print("Android (src/debug/res):")
     main = os.path.join(REPO, "android/app/src/main/res")
     debug = os.path.join(REPO, "android/app/src/debug/res")
     # Override exactly the launcher assets main defines, at identical sizes:
-    # the adaptive foreground drawable and the pre-API-26 legacy bitmap. The
-    # adaptive XML (mipmap-anydpi-v26/ic_launcher.xml) and background color stay
-    # inherited from main, so debug reuses the release icon's construction.
+    # the adaptive foreground drawable and the pre-API-26 legacy bitmap.
     patterns = ["drawable-*/ic_launcher_foreground.png", "mipmap-*/ic_launcher.png"]
     for pattern in patterns:
         for path in sorted(glob.glob(os.path.join(main, pattern))):
             rel = os.path.relpath(path, main)
             px = Image.open(path).size[0]
             write(resized(src, px), os.path.join(debug, rel))
+    # Safe-zone-inset adaptive descriptor, overriding main's 16% inset for the
+    # debug build type.
+    xml_path = os.path.join(debug, "mipmap-anydpi-v26/ic_launcher.xml")
+    os.makedirs(os.path.dirname(xml_path), exist_ok=True)
+    with open(xml_path, "w") as fh:
+        fh.write(_ADAPTIVE_ICON_XML)
+    print("  " + os.path.relpath(xml_path, REPO))
+    # Override the adaptive background color (main's is #FFFFFF white) with the
+    # artwork's own dark corner tone so the shrunk square blends into the tile.
+    colors_path = os.path.join(debug, "values/colors.xml")
+    os.makedirs(os.path.dirname(colors_path), exist_ok=True)
+    with open(colors_path, "w") as fh:
+        fh.write(
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            "<resources>\n"
+            f'    <color name="ic_launcher_background">{_corner_hex(src)}</color>\n'
+            "</resources>\n"
+        )
+    print("  " + os.path.relpath(colors_path, REPO))
 
 
 def gen_appiconset(src: Image.Image, src_set: str, out_set: str) -> None:
