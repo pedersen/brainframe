@@ -16,7 +16,17 @@ namespace {
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
 
+// A distinct window class in debug builds mirrors the ".debug" application-ID
+// suffix used on the other platforms (see linux/CMakeLists.txt), so a debug
+// window is externally distinguishable from a release/profile one — e.g. for a
+// future screenshot/dogfooding tool. The visible title stays "BrainFrame".
+// _DEBUG is defined only for the Debug configuration (windows/CMakeLists.txt).
+#ifdef _DEBUG
+constexpr const wchar_t kWindowClassName[] =
+    L"FLUTTER_RUNNER_WIN32_WINDOW_DEBUG";
+#else
 constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
+#endif
 
 /// Registry key for app theme preference.
 ///

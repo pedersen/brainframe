@@ -26,6 +26,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Give debug builds a distinct application ID (tech.brainframe.app.debug)
+            // so a debug install and a release/profile install coexist on one device
+            // as separate apps. Mirrors the ".debug" suffix in linux/CMakeLists.txt
+            // and the Apple Debug build configs.
+            applicationIdSuffix = ".debug"
+            // Debug builds also get a distinct "dev" launcher icon: the assets
+            // under src/debug/res/ override main's for the debug build type via
+            // Gradle resource merging — no wiring needed here. Regenerate them
+            // with `python3 tool/gen_debug_icons.py` (see
+            // docs/debug-build-identity.md).
+        }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.

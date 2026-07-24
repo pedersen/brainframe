@@ -37,7 +37,13 @@
 set -uo pipefail
 export DISPLAY="${DISPLAY:-:0}"
 
-readonly APP_TITLE='BrainFrame'   # the real window; helpers are "tech.brainframe.app" (10x10)
+readonly APP_TITLE='BrainFrame'   # the real window's title (same in every build)
+# We target ONLY the debug build. Its application ID gets a ".debug" suffix (see
+# linux/CMakeLists.txt), giving its X windows a distinct WM_CLASS. So you can
+# leave a release/profile build running all the time — dogfooding on your real
+# notes — and this tool will never capture, click, resize, or quit it; it only
+# ever sees the debug instance it launched.
+readonly APP_CLASS='tech.brainframe.app.debug'
 readonly APP_BUNDLE='build/linux/x64/debug/bundle/brainframe'
 # Always launch against the committed manual-testing engram, never real data.
 readonly TEST_ENGRAM='test/fixtures/engram'
@@ -47,7 +53,15 @@ readonly DEFAULT_OUT='/tmp/brainframe-shot.png'
 
 log() { printf 'appshot: %s\n' "$*" >&2; }
 
-find_window() { xdotool search --name "^${APP_TITLE}\$" 2>/dev/null | head -1; }
+# The debug build exposes three X windows sharing APP_CLASS: two 10x10 helpers
+# and the real one titled APP_TITLE. Filter by class (excludes any release/
+# profile build) then by title (excludes the 10x10 helpers).
+find_window() {
+  local wid
+  for wid in $(xdotool search --classname "^${APP_CLASS}\$" 2>/dev/null); do
+    [ "$(xdotool getwindowname "$wid" 2>/dev/null)" = "$APP_TITLE" ] && { echo "$wid"; return 0; }
+  done
+}
 app_running() { pgrep -f "$APP_BUNDLE" >/dev/null 2>&1; }
 
 launch() {

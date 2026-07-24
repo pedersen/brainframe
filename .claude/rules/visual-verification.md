@@ -18,9 +18,17 @@ and controlling a window there has sharp edges:
   Mutter.
 - Plain X11 tools (`maim`, `xdotool`) only see **XWayland** clients, so the app
   must be launched with `GDK_BACKEND=x11 flutter run -d linux`.
-- The Flutter app exposes three X windows — two 10×10 helpers named
-  `tech.brainframe.app`, and the real one titled **`BrainFrame`**. `maim -i` on
-  a helper fails with a RENDER `BadMatch`; you must pick the titled window.
+- The Flutter app exposes three X windows — two 10×10 helpers and the real one
+  titled **`BrainFrame`**. `maim -i` on a helper fails with a RENDER
+  `BadMatch`; you must pick the titled window.
+- The debug build's windows carry a distinct `WM_CLASS` of
+  `tech.brainframe.app.debug` (the release/profile ID is `tech.brainframe.app`;
+  the `.debug` suffix is added in `linux/CMakeLists.txt`). The script selects on
+  **that class *and* the `BrainFrame` title**, so it drives only the debug
+  build. You can leave a release/profile build running all the time —
+  dogfooding on your real notes — and the tool will never capture, click,
+  resize, or quit it. (`quit` is likewise scoped: it only kills the debug
+  bundle path and the `flutter run` supervisor, not a dogfood instance.)
 
 The script encodes all of that so nobody re-derives it, and so the whole
 launch → drive → capture → quit flow sits behind a **single command** you can
